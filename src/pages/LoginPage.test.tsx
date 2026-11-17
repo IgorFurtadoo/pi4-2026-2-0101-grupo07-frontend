@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest } from '../api/client'
 import { ERROR_MESSAGES } from '../api/errors'
 import { SESSION_KEY } from '../auth/sessionStorage'
+import { pendingResponse } from '../test/fetch'
 import { TEST_TOKEN, renderApp, storeValidSession } from '../test/renderApp'
 
 type FetchArgs = [url: string, init: RequestInit]
@@ -16,12 +17,23 @@ function jsonResponse(status: number, body: unknown) {
   })
 }
 
+/**
+ * Responde às chamadas de login. A carteira, aberta depois do login, lê o
+ * saldo ao montar: essa leitura fica pendente.
+ */
 function stubFetch(response: Response | Promise<Response>) {
   const fetchMock = vi
     .fn<(...args: FetchArgs) => Promise<Response>>()
-    .mockImplementation(() => Promise.resolve(response))
+    .mockImplementation((url, init) =>
+      url.endsWith('/wallet/balance') ? pendingResponse(init.signal) : Promise.resolve(response),
+    )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
+}
+
+/** Quantas chamadas foram ao login (a carteira faz a sua própria). */
+function loginCalls(fetchMock: ReturnType<typeof stubFetch>) {
+  return fetchMock.mock.calls.filter(([url]) => url.endsWith('/auth/login')).length
 }
 
 function futureIso(hours = 4) {
@@ -63,7 +75,7 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('heading', { name: 'Carteira' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/carteira')
     expect(JSON.parse(stored() ?? '')).toEqual({ token: TEST_TOKEN, expiresAt })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(loginCalls(fetchMock)).toBe(1)
   })
 
   it('e-mail com espaço no fim é aceito e enviado sem o espaço; a senha vai como digitada', async () => {
@@ -179,7 +191,7 @@ describe('LoginPage', () => {
       resolve(jsonResponse(200, { token: TEST_TOKEN, expiresAt: futureIso() }))
     })
     await screen.findByRole('heading', { name: 'Carteira' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(loginCalls(fetchMock)).toBe(1)
   })
 })
 
@@ -190,7 +202,12 @@ describe('sessão expirada', () => {
     const view = renderApp('/carteira')
     await screen.findByRole('heading', { name: 'Carteira' })
 
-    stubFetch(jsonResponse(401, { code: 'TOKEN_INVALID', message: 'Token inválido.' }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonResponse(401, { code: 'TOKEN_INVALID', message: 'Token inválido.' }),
+      ),
+    )
     await act(async () => {
       await apiRequest('/wallet/balance', { token: TEST_TOKEN }).catch(() => undefined)
     })
