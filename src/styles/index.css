@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source('..'); /* só src/ gera utilidades */
 
 /*
  * Tokens da camada de produto (desenho-frontend.md, seção 4).
