@@ -1,0 +1,25 @@
+# SPA do Lemma. ${API_ORIGIN} é trocado pelo entrypoint da imagem ao subir.
+server {
+    listen 8080;
+    server_name localhost;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Valem para todas as respostas, inclusive as de erro. Nenhum location abaixo
+    # usa add_header, para não apagar estes (o nginx não herda add_header).
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' ${API_ORIGIN}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+
+    # Arquivos do build: inexistente é 404, não o index.html.
+    location /assets/ {
+        try_files $uri =404;
+    }
+
+    # Fallback de SPA: rota profunda (/transacoes/...) devolve o index.html.
+    location / {
+        try_files $uri /index.html;
+    }
+}
