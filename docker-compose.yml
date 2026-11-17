@@ -1,0 +1,16 @@
+# Compose do Frontend. O navegador fala direto com o Core API pela porta
+# publicada no host (http://localhost:8080), então não há rede compartilhada.
+# Abra em http://localhost:5173 (não 127.0.0.1): é a origem exata liberada
+# no CORS do Core API.
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        # Lida do .env, se existir; senão, o Core API publicado no host.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    ports:
+      # Só no loopback. O container escuta em 8080 (nginx sem root).
+      - "127.0.0.1:5173:8080"
+    restart: unless-stopped
