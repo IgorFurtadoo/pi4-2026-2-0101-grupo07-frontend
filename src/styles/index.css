@@ -1,1 +1,101 @@
 @import 'tailwindcss';
+
+/*
+ * Tokens da camada de produto (desenho-frontend.md, seção 4).
+ * As quatro cores oficiais da marca vêm primeiro; o resto são tons derivados,
+ * que não são cores da marca. A paleta padrão do Tailwind é desligada para que
+ * só estes tons existam nas utilidades (bg-*, text-*, border-*).
+ * O @theme static gera todos os tokens como variável CSS em :root (ex.: var(--color-primary)).
+ */
+@theme static {
+  --color-*: initial;
+  --font-*: initial;
+
+  /* Marca (oficiais) */
+  --color-brand-blue: #2447c6;
+  --color-brand-coral: #f47762;
+  --color-brand-snow: #f5f7fa;
+  --color-brand-night: #151d35;
+
+  /* Superfícies claras */
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-white: #ffffff;
+  --color-text: #151d35;
+  --color-text-muted: #55607f;
+
+  /* Primária (botão, link, foco) */
+  --color-primary: #2447c6;
+  --color-primary-hover: #1c3aa3;
+  --color-primary-soft: #e8edfb;
+  --color-on-primary: #ffffff;
+
+  /* Limites */
+  --color-field-border: #8a94b0;
+  --color-divider: #d5dcea; /* só decoração, nunca o único limite de um campo */
+
+  /* Estados (sempre com ícone e texto, nunca só cor) */
+  --color-success: #17734b;
+  --color-success-soft: #e3f4ec;
+  --color-error: #b42318;
+  --color-error-soft: #fbe9e7;
+
+  /* Superfícies azul-noite */
+  --color-night: #151d35;
+  --color-night-surface: #1e2845;
+  --color-night-text: #f5f7fa;
+  --color-night-text-muted: #a9b4d6;
+  --color-night-link: #8fa6f0;
+  --color-night-accent: #f47762; /* coral pode ser texto só sobre o azul-noite */
+
+  /* Disco de apoio do mascote (exemplo do guia, seção 5.4) */
+  --color-mascot-disc-light: #c9d4f5;
+  --color-mascot-disc-night: #2b3659;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Tipografia (seção 4.2): Jost em tudo; monoespaçada do sistema para endereço, hash e taskId */
+  --font-sans: 'Jost Variable', system-ui, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Movimento é opcional (guia, seções 5.5 e desenho, seção 2) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
