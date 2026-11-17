@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Alert } from './Alert'
 import { Button } from './Button'
 import { COPY_FEEDBACK_MS, CopyButton } from './CopyButton'
+import { Skeleton } from './Skeleton'
 import { TextField } from './TextField'
 
 afterEach(() => {
@@ -104,5 +105,14 @@ describe('CopyButton', () => {
     })
 
     expect(screen.getByRole('button', { name: 'Não foi possível copiar' })).toBeInTheDocument()
+  })
+})
+
+describe('Skeleton', () => {
+  it('é decorativo (aria-hidden) e anima pelo CSS', () => {
+    const { container } = render(<Skeleton className="h-10 w-48" />)
+    const block = container.firstElementChild
+    expect(block).toHaveAttribute('aria-hidden', 'true')
+    expect(block).toHaveClass('animate-shimmer', 'h-10', 'w-48')
   })
 })
