@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ERROR_CODES, ERROR_MESSAGES, messageFor } from './errors'
+import { ERROR_CODES, ERROR_MESSAGES, UNCERTAIN_SEND_MESSAGE, isUncertainSendError, messageFor } from './errors'
 
 describe('mapa de erros', () => {
   it('cobre os códigos da seção 8 do desenho mais o NETWORK_ERROR', () => {
@@ -36,5 +36,28 @@ describe('mapa de erros', () => {
     expect(messageFor('ALGO_NOVO', 'Mensagem do servidor')).toBe('Mensagem do servidor')
     expect(messageFor('ALGO_NOVO')).toBe(ERROR_MESSAGES.INTERNAL_ERROR)
     expect(messageFor('ALGO_NOVO', '   ')).toBe(ERROR_MESSAGES.INTERNAL_ERROR)
+  })
+})
+
+describe('resultado incerto do envio', () => {
+  it.each(['NETWORK_ERROR', 'INTERNAL_ERROR'])('%s é incerto', (code) => {
+    expect(isUncertainSendError(code)).toBe(true)
+  })
+
+  it('code desconhecido é incerto: não prova que nada foi gravado', () => {
+    expect(isUncertainSendError('SERVICE_OVERLOADED')).toBe(true)
+  })
+
+  it.each(['ADDRESS_INVALID', 'AMOUNT_INVALID', 'REQUEST_INVALID', 'BLOCKCHAIN_UNAVAILABLE', 'TOKEN_INVALID'])(
+    '%s não é incerto',
+    (code) => {
+      expect(isUncertainSendError(code)).toBe(false)
+    },
+  )
+
+  it('diz para conferir a carteira antes de enviar de novo', () => {
+    expect(UNCERTAIN_SEND_MESSAGE).toBe(
+      'Não foi possível confirmar se o envio foi aceito. Se foi, o saldo diminui quando a rede confirmar. Espere um pouco e confira a carteira antes de enviar de novo.',
+    )
   })
 })

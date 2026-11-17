@@ -58,3 +58,20 @@ export function messageFor(code: string, serverMessage?: string): string {
   if (isKnownErrorCode(code)) return ERROR_MESSAGES[code]
   return serverMessage?.trim() || ERROR_MESSAGES.INTERNAL_ERROR
 }
+
+/**
+ * Envio (CT9) com resultado incerto: o Core API pode ter aceito o pedido.
+ * Sem idempotência, a tela não reenvia sozinha; o usuário decide.
+ */
+export const UNCERTAIN_SEND_MESSAGE =
+  'Não foi possível confirmar se o envio foi aceito. Se foi, o saldo diminui quando a rede confirmar. Espere um pouco e confira a carteira antes de enviar de novo.'
+
+/**
+ * true quando a falha de um envio não prova que nada foi gravado: falha de
+ * rede ou tempo esgotado (NETWORK_ERROR), 500 ou 202 fora da ficha
+ * (INTERNAL_ERROR; o 500 pode vir depois de o Blockchain Service já ter
+ * recebido o pedido) e qualquer code que o Frontend não conhece.
+ */
+export function isUncertainSendError(code: string): boolean {
+  return code === 'NETWORK_ERROR' || code === 'INTERNAL_ERROR' || !isKnownErrorCode(code)
+}
