@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addressProblem,
+  amountProblem,
   emailProblem,
   isValidAddress,
   isValidAmount,
@@ -160,5 +162,76 @@ describe('passwordProblem', () => {
   it('aceita de 8 caracteres a 72 bytes', () => {
     expect(passwordProblem('a'.repeat(8))).toBeNull()
     expect(passwordProblem('ç'.repeat(36))).toBeNull()
+  })
+})
+
+describe('addressProblem', () => {
+  it('vazio ou só espaços é "empty"', () => {
+    expect(addressProblem('')).toBe('empty')
+    expect(addressProblem('   ')).toBe('empty')
+  })
+
+  it('fora de 0x e 40 hexadecimais é "format"', () => {
+    expect(addressProblem('0x123')).toBe('format')
+    expect(addressProblem('0x' + 'g'.repeat(40))).toBe('format')
+    expect(addressProblem('71C7656EC7ab88b098defB751B7401B5f6d8976F')).toBe('format')
+  })
+
+  it('endereço válido, com espaços nas pontas e qualquer caixa, passa', () => {
+    expect(addressProblem(' 0x71C7656EC7ab88b098defB751B7401B5f6d8976F ')).toBeNull()
+    expect(addressProblem('0x' + 'A'.repeat(40))).toBeNull()
+  })
+})
+
+describe('amountProblem', () => {
+  it('vazio ou só espaços é "empty"', () => {
+    expect(amountProblem('')).toBe('empty')
+    expect(amountProblem(' ')).toBe('empty')
+    expect(amountProblem('\t ')).toBe('empty')
+  })
+
+  it.each(['-1', '+1', '1e2', '1E+2', 'abc', '1.2.3', '1,2,3', '1.000,50', '1 000', '.', ',', '0x10', '١'])(
+    '"%s" é "format"',
+    (raw) => {
+      expect(amountProblem(raw)).toBe('format')
+    },
+  )
+
+  it.each(['0', '0.000', '0,000', '000', '.0', '0.'])('"%s" é "zero"', (raw) => {
+    expect(amountProblem(raw)).toBe('zero')
+  })
+
+  it('aceita ".5", "5.", "0,5" e espaços nas pontas', () => {
+    expect(amountProblem('.5')).toBeNull()
+    expect(amountProblem('5.')).toBeNull()
+    expect(amountProblem('0,5')).toBeNull()
+    expect(amountProblem(' 0.01 ')).toBeNull()
+  })
+
+  it('"1.000" é 1 ETH: ponto é sempre decimal, sem separador de milhar', () => {
+    expect(amountProblem('1.000')).toBeNull()
+    expect(amountProblem('1,000')).toBeNull()
+  })
+
+  it('até 18 casas, sem contar os zeros à direita', () => {
+    expect(amountProblem('0.' + '0'.repeat(17) + '1')).toBeNull()
+    expect(amountProblem('0.' + '0'.repeat(18) + '1')).toBe('too_many_decimals')
+    expect(amountProblem('0.0100000000000000000000')).toBeNull()
+  })
+
+  it('até 20 dígitos inteiros, sem contar os zeros à esquerda', () => {
+    expect(amountProblem('9'.repeat(20))).toBeNull()
+    expect(amountProblem('1' + '0'.repeat(20))).toBe('too_many_integer_digits')
+    expect(amountProblem('000' + '9'.repeat(20) + '.5')).toBeNull()
+  })
+
+  it('casas demais vence dígitos inteiros demais', () => {
+    expect(amountProblem('1'.repeat(21) + '.' + '1'.repeat(19))).toBe('too_many_decimals')
+  })
+
+  it('isValidAmount concorda com amountProblem', () => {
+    for (const raw of ['', '0', '0,5', '1.000', '-1', '0.' + '1'.repeat(19), '1'.repeat(21)]) {
+      expect(isValidAmount(raw)).toBe(amountProblem(raw) === null)
+    }
   })
 })

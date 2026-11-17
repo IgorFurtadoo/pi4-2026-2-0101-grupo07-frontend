@@ -71,15 +71,43 @@ export function isValidAddress(address: string): boolean {
  * como no CT9 ("0.0100000000000000000000" vale como "0.01").
  */
 export function isValidAmount(raw: string): boolean {
+  return amountProblem(raw) === null
+}
+
+export type AddressProblem = 'empty' | 'format'
+
+/** Motivo de o endereço não passar, ou null. Vazio conta depois de tirar os espaços das pontas. */
+export function addressProblem(raw: string): AddressProblem | null {
+  if (raw.trim() === '') return 'empty'
+  return isValidAddress(raw) ? null : 'format'
+}
+
+export type AmountProblem =
+  | 'empty'
+  | 'format'
+  | 'zero'
+  | 'too_many_decimals'
+  | 'too_many_integer_digits'
+
+/**
+ * Motivo de o valor não passar, ou null. Vírgula ou ponto só como separador
+ * decimal (um só), sem sinal, expoente nem separador de milhar: "1.000" é 1
+ * ETH. Zeros à esquerda e à direita não contam para os limites.
+ */
+export function amountProblem(raw: string): AmountProblem | null {
   const text = normalizeAmountInput(raw)
-  if (!/^\d+(\.\d+)?$/.test(text)) return false
+  if (text === '') return 'empty'
+  // Sem nenhum dígito ("." ou ","), não é número, embora normalize para "0".
+  if (!/^\d+(\.\d+)?$/.test(text) || !/\d/.test(raw)) return 'format'
 
   const [integerPart, fractionPart = ''] = text.split('.')
   const integer = integerPart.replace(/^0+/, '')
   const fraction = fractionPart.replace(/0+$/, '')
 
-  if (integer === '' && fraction === '') return false
-  return fraction.length <= AMOUNT_MAX_DECIMALS && integer.length <= AMOUNT_MAX_INTEGER_DIGITS
+  if (integer === '' && fraction === '') return 'zero'
+  if (fraction.length > AMOUNT_MAX_DECIMALS) return 'too_many_decimals'
+  if (integer.length > AMOUNT_MAX_INTEGER_DIGITS) return 'too_many_integer_digits'
+  return null
 }
 
 export type EmailProblem = 'empty' | 'invalid'
