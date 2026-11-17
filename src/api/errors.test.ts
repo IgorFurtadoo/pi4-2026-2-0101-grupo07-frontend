@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest'
+import { ERROR_CODES, ERROR_MESSAGES, messageFor } from './errors'
+
+describe('mapa de erros', () => {
+  it('cobre os códigos da seção 8 do desenho mais o NETWORK_ERROR', () => {
+    expect([...ERROR_CODES].sort()).toEqual(
+      [
+        'EMAIL_INVALID',
+        'PASSWORD_INVALID',
+        'EMAIL_ALREADY_REGISTERED',
+        'WALLET_UNAVAILABLE',
+        'INVALID_CREDENTIALS',
+        'REQUEST_INVALID',
+        'TOKEN_INVALID',
+        'ADDRESS_INVALID',
+        'AMOUNT_INVALID',
+        'BLOCKCHAIN_UNAVAILABLE',
+        'TRANSACTION_NOT_FOUND',
+        'ASSET_NOT_FOUND',
+        'RATE_LIMIT_EXCEEDED',
+        'MARKET_DATA_UNAVAILABLE',
+        'INTERNAL_ERROR',
+        'NETWORK_ERROR',
+      ].sort(),
+    )
+    for (const code of ERROR_CODES) {
+      expect(ERROR_MESSAGES[code].length).toBeGreaterThan(0)
+    }
+  })
+
+  it('usa o texto do Frontend para código conhecido, mesmo com mensagem do servidor', () => {
+    expect(messageFor('INVALID_CREDENTIALS', 'outra coisa')).toBe('E-mail ou senha incorretos.')
+  })
+
+  it('usa a mensagem do servidor como reserva para código desconhecido', () => {
+    expect(messageFor('ALGO_NOVO', 'Mensagem do servidor')).toBe('Mensagem do servidor')
+    expect(messageFor('ALGO_NOVO')).toBe(ERROR_MESSAGES.INTERNAL_ERROR)
+    expect(messageFor('ALGO_NOVO', '   ')).toBe(ERROR_MESSAGES.INTERNAL_ERROR)
+  })
+})
