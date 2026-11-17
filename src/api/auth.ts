@@ -1,6 +1,6 @@
 import { parseIsoInstant } from '../lib/instant'
-import { ApiError, apiRequest } from './client'
-import { messageFor } from './errors'
+import { apiRequest } from './client'
+import { isRecord, unexpectedResponse } from './response'
 
 /**
  * Cadastro e login (fichas CT1 e CT3). Rotas públicas: não levam token.
@@ -23,15 +23,6 @@ export type RegisterResult = {
 export type LoginResult = {
   token: string
   expiresAt: string
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
-/** Resposta 2xx fora do formato da ficha: tratada como falha do servidor. */
-function unexpectedResponse(): ApiError {
-  return new ApiError({ code: 'INTERNAL_ERROR', message: messageFor('INTERNAL_ERROR') })
 }
 
 /** CT1 registerUser: POST /users. Cria o usuário e a carteira custodial. */
