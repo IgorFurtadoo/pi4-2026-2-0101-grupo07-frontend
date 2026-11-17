@@ -1,0 +1,12 @@
+# Dependências e saída do build
+node_modules/
+dist/
+coverage/
+
+# Variáveis de ambiente: só o .env.example é versionado
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
