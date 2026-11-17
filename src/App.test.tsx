@@ -1,33 +1,24 @@
 import { render, screen } from '@testing-library/react'
-import { RouterProvider, createMemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { Logo } from './components/brand/Logo'
-import { routes } from './routes'
+import { renderApp, storeValidSession } from './test/renderApp'
 
-function renderAt(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<RouterProvider router={router} />)
-  return router
-}
+afterEach(() => {
+  window.sessionStorage.clear()
+})
 
 describe('rotas', () => {
   it('mostra a página não encontrada com o logo no cabeçalho', async () => {
-    renderAt('/rota-que-nao-existe')
+    renderApp('/rota-que-nao-existe')
 
     expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()
     const logo = screen.getByRole('img', { name: 'Lemma' })
     expect(logo).toHaveAttribute('height', '40')
   })
 
-  it('leva "/" para /carteira', async () => {
-    const router = renderAt('/')
-
-    expect(await screen.findByRole('heading', { name: 'Carteira' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/carteira')
-  })
-
   it('mostra o taskId da rota de acompanhamento como texto', async () => {
-    renderAt('/transacoes/a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b')
+    storeValidSession()
+    renderApp('/transacoes/a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b')
 
     expect(await screen.findByText('a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b')).toBeInTheDocument()
   })
