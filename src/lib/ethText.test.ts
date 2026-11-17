@@ -17,6 +17,7 @@ const SOURCES = import.meta.glob<string>(
     '../components/wallet/*.tsx',
     '!../components/wallet/*.test.tsx',
     '../pages/WalletPage.tsx',
+    '../pages/SendPage.tsx',
   ],
   { query: '?raw', import: 'default', eager: true },
 )
@@ -31,6 +32,7 @@ describe('ETH sem Number', () => {
       '../components/wallet/BalanceCard.tsx',
       '../components/wallet/ReceivePanel.tsx',
       '../hooks/useBalance.ts',
+      '../pages/SendPage.tsx',
       '../pages/WalletPage.tsx',
       './format.ts',
       './validate.ts',
