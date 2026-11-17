@@ -29,6 +29,14 @@ function javaTrim(text: string): string {
 /** algo@algo.algo, sem espaço; "\s" do Java sem Unicode é só [ \t\n\x0B\f\r]. */
 const EMAIL_FORMAT = /^[^@ \t\n\v\f\r]+@[^@ \t\n\v\f\r]+\.[^@ \t\n\v\f\r]+$/
 
+/**
+ * E-mail sem os espaços das pontas, como o Core API o recebe antes de
+ * normalizar. É o que o Frontend valida e envia. Nunca se aplica à senha.
+ */
+export function trimEmail(raw: string): string {
+  return javaTrim(raw)
+}
+
 /** E-mail como o Core API o trata: espaços das pontas removidos e letras minúsculas. */
 export function normalizeEmail(raw: string): string {
   return javaTrim(raw).toLowerCase()
@@ -72,4 +80,22 @@ export function isValidAmount(raw: string): boolean {
 
   if (integer === '' && fraction === '') return false
   return fraction.length <= AMOUNT_MAX_DECIMALS && integer.length <= AMOUNT_MAX_INTEGER_DIGITS
+}
+
+export type EmailProblem = 'empty' | 'invalid'
+
+/** Motivo de o e-mail não passar, ou null. Vazio conta depois de tirar os espaços das pontas. */
+export function emailProblem(raw: string): EmailProblem | null {
+  if (trimEmail(raw) === '') return 'empty'
+  return isValidEmail(raw) ? null : 'invalid'
+}
+
+export type PasswordProblem = 'empty' | 'too_short' | 'too_long'
+
+/** Motivo de a senha não passar, ou null. A senha nunca é aparada. */
+export function passwordProblem(password: string): PasswordProblem | null {
+  if (password === '') return 'empty'
+  if (codePointCount(password) < PASSWORD_MIN_CHARS) return 'too_short'
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX_BYTES) return 'too_long'
+  return null
 }

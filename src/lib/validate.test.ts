@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { isValidAddress, isValidAmount, isValidEmail, isValidPassword, normalizeEmail } from './validate'
+import {
+  emailProblem,
+  isValidAddress,
+  isValidAmount,
+  isValidEmail,
+  isValidPassword,
+  normalizeEmail,
+  passwordProblem,
+  trimEmail,
+} from './validate'
 
 const bytes = (text: string) => new TextEncoder().encode(text).length
 
@@ -107,5 +116,49 @@ describe('isValidAmount', () => {
     expect(isValidAmount('9'.repeat(20))).toBe(true)
     expect(isValidAmount('1' + '0'.repeat(20))).toBe(false)
     expect(isValidAmount('0'.repeat(5) + '9'.repeat(20))).toBe(true)
+  })
+})
+
+describe('trimEmail', () => {
+  it('tira os espaços das pontas e mantém a caixa', () => {
+    expect(trimEmail('  Ana@Example.com \t')).toBe('Ana@Example.com')
+  })
+})
+
+describe('emailProblem', () => {
+  it('vazio ou só espaços é "empty"', () => {
+    expect(emailProblem('')).toBe('empty')
+    expect(emailProblem('   ')).toBe('empty')
+  })
+
+  it('formato errado é "invalid"', () => {
+    expect(emailProblem('ana@')).toBe('invalid')
+    expect(emailProblem(`${'a'.repeat(250)}@b.co`)).toBe('invalid')
+  })
+
+  it('e-mail válido com espaço no fim passa', () => {
+    expect(emailProblem('ana@example.com ')).toBeNull()
+  })
+})
+
+describe('passwordProblem', () => {
+  it('vazia é "empty"; só espaços não é vazia', () => {
+    expect(passwordProblem('')).toBe('empty')
+    expect(passwordProblem('        ')).toBeNull()
+  })
+
+  it('menos de 8 caracteres é "too_short", mesmo com 8 bytes', () => {
+    expect(passwordProblem('1234567')).toBe('too_short')
+    expect(passwordProblem('çãõé')).toBe('too_short')
+  })
+
+  it('mais de 72 bytes é "too_long"', () => {
+    expect(passwordProblem('a'.repeat(73))).toBe('too_long')
+    expect(passwordProblem('ç'.repeat(37))).toBe('too_long')
+  })
+
+  it('aceita de 8 caracteres a 72 bytes', () => {
+    expect(passwordProblem('a'.repeat(8))).toBeNull()
+    expect(passwordProblem('ç'.repeat(36))).toBeNull()
   })
 })

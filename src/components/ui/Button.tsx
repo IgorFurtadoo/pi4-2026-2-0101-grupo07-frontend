@@ -1,12 +1,6 @@
 import { LoaderCircle } from 'lucide-react'
 import type { ComponentPropsWithRef } from 'react'
-
-export type ButtonVariant = 'primary' | 'secondary'
-
-const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-on-primary hover:bg-primary-hover',
-  secondary: 'border border-primary bg-surface text-primary hover:bg-primary-soft',
-}
+import { BUTTON_CLASS, type ButtonVariant } from './buttonClass'
 
 type ButtonProps = ComponentPropsWithRef<'button'> & {
   variant?: ButtonVariant
@@ -34,7 +28,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-5 py-2.5 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${VARIANT_CLASS[variant]} ${className ?? ''}`}
+      className={`${BUTTON_CLASS[variant]} ${className ?? ''}`}
       {...rest}
     >
       {loading && <LoaderCircle aria-hidden="true" className="size-5 shrink-0 animate-spin" />}
