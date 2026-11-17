@@ -1,6 +1,6 @@
 # Desenho do Frontend (Container 1)
 
-Escrito em 16/11/2026, atualizado em 17/11/2026 depois do F1. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
+Escrito em 16/11/2026, atualizado em 17/11/2026 depois do F2. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
 
 Legenda:
 - **[Contrato]**: já definido na Especificação ou no Core API. Só muda emendando a ficha.
@@ -122,7 +122,7 @@ A fonte do produto é decisão que o guia deixou aberta (seção 7, "uso da Jost
 2. **Cartão de saldo.** O elemento central do app: um cartão azul sólido (`#2447C6`, texto branco, 7,5 : 1), o saldo em Jost 500 em escala grande, a unidade "ETH" menor, o selo "Sepolia · testnet", o endereço em chip com botão de copiar e os botões "Enviar" e "Receber". O coral entra como um único acento (um fio ou um ponto), nunca como texto.
 3. **Painel de mercado.** Preço em destaque, variação dos 7 dias e o gráfico em SVG: área suave sob uma linha azul, ponto e valor ao passar o mouse, sem grade pesada.
 4. **Acompanhamento da transação.** Uma linha do tempo vertical: "Solicitação aceita" (concluída) → "Aguardando confirmação" (indicador animado) → "Confirmada" ou "Falhou". Na transição para o estado final, o ícone se desenha (traço de SVG). Aqui está o momento de maior movimento do app, e ele é opcional (`prefers-reduced-motion`).
-5. **Carregamento e vazio.** Esqueletos (shimmer) no lugar de rodinhas. Estado vazio de atividade com o mascote pequeno ao lado de texto (é "boas-vindas", uso permitido).
+5. **Carregamento e vazio.** Esqueletos (shimmer) no lugar de rodinhas. Estado vazio de atividade com o mascote pequeno ao lado de texto (é "boas-vindas", uso permitido). [Decidido, 17/11/2026] Só existe se o histórico da seção 7 entrar: sem ele, não se mostra "nenhuma atividade", porque seria falso (as transações existem, só não dá para listá-las).
 
 Onde o mascote **não** aparece: erros, avisos, 404, carregamento, confirmação de sucesso (regra da marca, seção 5.5). Esses estados usam ícone e texto.
 
@@ -160,7 +160,7 @@ Rota protegida sem token válido leva a `/entrar`. Rota pública com sessão vá
 
 ### 6.3 "Receber" [Sugestão, opcional]
 
-Para financiar a carteira na demonstração o usuário precisa do endereço. A tela (ou painel) "Receber" mostra o endereço completo, o botão de copiar e uma nota "isto é a rede de teste Sepolia: só receba ETH de teste". O QR code é um acréscimo barato (`qrcode.react`) e entra só se sobrar tempo no passo F7.
+Para financiar a carteira na demonstração o usuário precisa do endereço. A tela (ou painel) "Receber" mostra o endereço completo, o botão de copiar e uma nota "isto é a rede de teste Sepolia: só receba ETH de teste". O QR code é um acréscimo barato (`qrcode.react`) e entra só se sobrar tempo no passo F7. [Sugestão para o F3] Seção recolhível na própria carteira (botão com `aria-expanded`), sem rota nova.
 
 ### 6.4 Envio (E4) e a janela de clique duplo
 
@@ -296,12 +296,12 @@ Regras: página não chama `fetch`; só chama `api/`. `api/` não conhece React.
 
 ### 13.2 Passos
 
-Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<id>`. Como o repositório é seu, os commits saem da sua conta, sem alternância e sem a regra de sigilo do Core API. Números dos cards levantados no histórico da revisão do backlog (18/10/2026): H05.3 (#878, envio) e H08.3 (#887, acompanhamento) confirmados pelo texto; H02.3 (#870), H03.2 (#872), H04.3 (#875) e H06.3 (#881) pela numeração das tasks do Frontend, **a conferir no OpenProject antes de usar nos rodapés**.
+Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<id>`. Como o repositório é seu, os commits saem da sua conta, sem alternância e sem a regra de sigilo do Core API. Números dos cards levantados no histórico da revisão do backlog (18/10/2026): H05.3 (#878, envio) e H08.3 (#887, acompanhamento) confirmados pelo texto; H02.3 (#870), H03.2 (#872), H04.3 (#875) e H06.3 (#881) pela numeração das tasks do Frontend. O padrão se repete em todos os pares confirmados (o card do Core API é N e o do Frontend é N+1: H02.2 #869 → H02.3 #870, H03.1 #871 → H03.2 #872, H05.2 #877 → H05.3 #878, H08.2 #886 → H08.3 #887, H04.2 #874 → H04.3 #875, H06.2 #880 → H06.3 #881), o que dá confiança nos números; o Igor confere o título de cada um no OpenProject ao usá-lo.
 
 | # | Passo | Pronto quando | Card |
 |---|---|---|---|
 | F1 | Esqueleto Vite + TS + Tailwind + Router; tokens da seção 4; fonte; Dockerfile, nginx e compose na porta 5173; ativos da marca; cabeçalho com o logo; cliente da API (erros, decimal, tempo limite); `.env.example`; `docs/desenho-frontend.md` no repositório | `docker compose up` serve o app em `http://localhost:5173` com o logo e o favicon; recarregar uma rota profunda não dá 404; testes do cliente e do reviver verdes | H01.5 (#1315, parte Frontend) e H01.2 (#865, parte Frontend). **Feito em 17/11/2026** (12 commits na branch `h01-5-frontend-esqueleto`; 56 testes; favicon "L" gerado da `Jost.ttf` conforme a seção 8 do guia) |
-| F2 | Cadastro (com a tela de confirmação), login, `AuthContext`, `sessionStorage`, `RequireAuth`, tratamento centralizado de `TOKEN_INVALID` | Cadastrar, ver o endereço, entrar, recarregar mantendo a sessão, token vencido volta ao login, senha errada mostra a mensagem e não guarda token | H02.3 (#870, cadastro) e H03.2 (#872, login) |
+| F2 | Cadastro (com a tela de confirmação), login, `AuthContext`, `sessionStorage`, `RequireAuth`, tratamento centralizado de `TOKEN_INVALID` | Cadastrar, ver o endereço, entrar, recarregar mantendo a sessão, token vencido volta ao login, senha errada mostra a mensagem e não guarda token | H02.3 (#870, cadastro) e H03.2 (#872, login). **Feito e enviado em 17/11/2026** (7 commits, origin/main em `09a3dc1`; 155 testes; `lucide-react` 1.73.0; Core API exercitado com `curl` a partir da origem `http://localhost:5173`; roteiro de cadastro e login validado no navegador) |
 | F3 | Carteira: cartão de saldo, copiar endereço, "Receber", esqueletos | Saldo real do Core API em texto, sem perda de dígitos; 502 do saldo mostra estado de erro com nova tentativa | H04.3 (#875) |
 | F4 | Envio: formulário, revisão, trava de clique duplo, erros por `code` | Um envio real devolve `202` e abre `/transacoes/{taskId}`; dois cliques seguidos fazem **uma** chamada; endereço e valor inválidos mostram a mensagem certa | H05.3 (#878) |
 | F5 | Acompanhamento: polling, linha do tempo, hash, motivos de falha, aviso de demora | `PENDING` vira `CONFIRMED` sem recarregar; `FAILED` mostra o motivo; sair da tela cancela o polling; saldo atualiza ao voltar | H08.3 (#887) |
