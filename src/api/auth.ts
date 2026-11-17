@@ -1,3 +1,4 @@
+import { parseIsoInstant } from '../lib/instant'
 import { ApiError, apiRequest } from './client'
 import { messageFor } from './errors'
 
@@ -16,6 +17,12 @@ export type RegisterResult = {
   userId: number
   email: string
   ethereumAddress: string
+}
+
+/** CT3: 200 { token, expiresAt }. expiresAt em ISO 8601 UTC, sem fração de segundo. */
+export type LoginResult = {
+  token: string
+  expiresAt: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -47,4 +54,28 @@ export async function registerUser(
     throw unexpectedResponse()
   }
   return { userId: body.userId, email: body.email, ethereumAddress: body.ethereumAddress }
+}
+
+/**
+ * CT3 authenticateUser: POST /auth/login. O mesmo INVALID_CREDENTIALS vale
+ * para e-mail inexistente e senha errada. O token nunca vai a log nem a mensagem.
+ */
+export async function authenticateUser(
+  { email, password }: Credentials,
+  signal?: AbortSignal,
+): Promise<LoginResult> {
+  const body = await apiRequest<unknown>('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+    signal,
+  })
+  if (
+    !isRecord(body) ||
+    typeof body.token !== 'string' ||
+    body.token === '' ||
+    parseIsoInstant(body.expiresAt) === null
+  ) {
+    throw unexpectedResponse()
+  }
+  return { token: body.token, expiresAt: body.expiresAt as string }
 }
