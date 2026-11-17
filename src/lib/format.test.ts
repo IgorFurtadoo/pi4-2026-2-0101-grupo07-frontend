@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatEth, normalizeAmountInput } from './format'
+import { ETH_DECIMALS, formatEth, isZeroEth, normalizeAmountInput, shortenAddress } from './format'
 
 describe('normalizeAmountInput', () => {
   it('aceita vírgula ou ponto e devolve o texto com ponto', () => {
@@ -62,5 +62,38 @@ describe('formatEth', () => {
   it('devolve como veio o texto fora do formato', () => {
     expect(formatEth('abc')).toBe('abc')
     expect(formatEth('1e-7')).toBe('1e-7')
+  })
+})
+
+describe('formatEth com todas as casas (valor exato)', () => {
+  it('mostra o valor inteiro, sem cortar', () => {
+    expect(formatEth('0.002499999999601', ETH_DECIMALS)).toBe('0,002499999999601')
+    expect(formatEth('0.000000000000000001', ETH_DECIMALS)).toBe('0,000000000000000001')
+    expect(formatEth('123456789.123456789012345678', ETH_DECIMALS)).toBe(
+      '123.456.789,123456789012345678',
+    )
+  })
+})
+
+describe('isZeroEth', () => {
+  it('reconhece zero em qualquer escala', () => {
+    expect(isZeroEth('0')).toBe(true)
+    expect(isZeroEth('0.000000000000000000')).toBe(true)
+  })
+
+  it('não confunde valor pequeno com zero', () => {
+    expect(isZeroEth('0.000000000000000001')).toBe(false)
+    expect(isZeroEth('10')).toBe(false)
+    expect(isZeroEth('')).toBe(false)
+  })
+})
+
+describe('shortenAddress', () => {
+  it('mostra os 6 primeiros e os 4 últimos', () => {
+    expect(shortenAddress('0x71C7656EC7ab88b098defB751B7401B5f6d8976F')).toBe('0x71C7…976F')
+  })
+
+  it('deixa como está um texto curto', () => {
+    expect(shortenAddress('0x1234')).toBe('0x1234')
   })
 })

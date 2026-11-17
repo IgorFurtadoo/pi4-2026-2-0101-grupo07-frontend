@@ -39,3 +39,17 @@ export function formatEth(value: string, maxDecimals = 6): string {
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return shown === '' ? grouped : `${grouped},${shown}`
 }
+
+/** Maior número de casas do ETH (1 wei). Com ele, formatEth mostra o valor inteiro. */
+export const ETH_DECIMALS = 18
+
+/** Saldo zero, decidido pelo texto: "0", "0.000000000000000000". */
+export function isZeroEth(value: string): boolean {
+  return /^0+(\.0+)?$/.test(value)
+}
+
+/** Endereço abreviado para o chip: os 6 primeiros e os 4 últimos ("0x71C7…976F"). */
+export function shortenAddress(address: string): string {
+  if (address.length <= 10) return address
+  return `${address.slice(0, 6)}…${address.slice(-4)}`
+}
