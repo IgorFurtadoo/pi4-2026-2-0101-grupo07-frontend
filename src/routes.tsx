@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { HomeRedirect, RequireAuth, RequireGuest } from './auth/RequireAuth'
 import { AppLayout } from './components/layout/AppLayout'
+import { AuthLayout } from './components/layout/AuthLayout'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -9,21 +10,27 @@ import { TransactionPage } from './pages/TransactionPage'
 import { WalletPage } from './pages/WalletPage'
 
 /**
- * Rotas da seção 6 do desenho. Rotas com token passam pelo RequireAuth; cadastro
- * e login, pelo RequireGuest. "/" decide pela sessão.
+ * Rotas da seção 6 do desenho. Cadastro e login passam pelo RequireGuest e
+ * ocupam a tela inteira (AuthLayout, sem o cabeçalho); as demais ficam no
+ * AppLayout, e as que exigem token passam pelo RequireAuth. "/" decide pela sessão.
  */
 export const routes: RouteObject[] = [
   {
-    element: <AppLayout />,
+    element: <RequireGuest />,
     children: [
-      { path: '/', element: <HomeRedirect /> },
       {
-        element: <RequireGuest />,
+        element: <AuthLayout />,
         children: [
           { path: '/cadastro', element: <RegisterPage /> },
           { path: '/entrar', element: <LoginPage /> },
         ],
       },
+    ],
+  },
+  {
+    element: <AppLayout />,
+    children: [
+      { path: '/', element: <HomeRedirect /> },
       {
         element: <RequireAuth />,
         children: [
