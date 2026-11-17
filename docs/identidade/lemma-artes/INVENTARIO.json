@@ -1,0 +1,137 @@
+[
+  {
+    "arquivo": "INVENTARIO.json",
+    "bytes": 3832,
+    "sha256": "be8d97fafa18f3dd88c76bcd316f284cffdf351ab479758208ccb9261e89c3cf"
+  },
+  {
+    "arquivo": "Jost.ttf",
+    "bytes": 134996,
+    "sha256": "6343b70971000b04c5d401c96ae08ce371086135e999d5e1e1413039c0213076"
+  },
+  {
+    "arquivo": "LEIA-ME.md",
+    "bytes": 1544,
+    "sha256": "e7ef652fe75901157c51736fb49d316b1cce97c5b5c93477f5d91cb737d58b97"
+  },
+  {
+    "arquivo": "OFL.txt",
+    "bytes": 4384,
+    "sha256": "1af3438a4d5f0ed2bdbc5751a5a67ebf6d537334161184b7fbb68503ef0ea0c5"
+  },
+  {
+    "arquivo": "favicon-16.png",
+    "bytes": 541,
+    "sha256": "66ebcb194beda81fda5e48cda5a1219720104f8a39ff03645f110c45b00aa993"
+  },
+  {
+    "arquivo": "favicon-180.png",
+    "bytes": 8864,
+    "sha256": "fcb90ce5ef1eafdee2f40930dc6a3744f71337b1844cdc1147122ee81faa884d"
+  },
+  {
+    "arquivo": "favicon-32.png",
+    "bytes": 1394,
+    "sha256": "57e5b303d97f6551d35cf3adde2da1ab2bb137b5bc483eb314925ef13811813e"
+  },
+  {
+    "arquivo": "favicon-64.png",
+    "bytes": 3046,
+    "sha256": "c1475e0460794ee026ed9e3d2ecad3d52d2eb64914b843e3d832269080b6b6ac"
+  },
+  {
+    "arquivo": "favicon.svg",
+    "bytes": 743,
+    "sha256": "46bc6f03a055f7b1c42d71d93f2f547c467085c1c6025e0b9577afaacc805f6c"
+  },
+  {
+    "arquivo": "lemma-logo-claro.png",
+    "bytes": 111562,
+    "sha256": "2983ea3877e920388151ec5ae7a433df8f099c36c03efb7bbfaebdb58a777789"
+  },
+  {
+    "arquivo": "lemma-logo-claro.svg",
+    "bytes": 11800,
+    "sha256": "9fcfd6fe1ba7a007730396f975f1020be04242b673df91538dd3f14c1810ab1d"
+  },
+  {
+    "arquivo": "lemma-logo-escuro.png",
+    "bytes": 110732,
+    "sha256": "ac25290c1d1fe34c2c2441c92ca0af2921df94d6aa683d33e1f2e35232b0b3f2"
+  },
+  {
+    "arquivo": "lemma-logo-escuro.svg",
+    "bytes": 11800,
+    "sha256": "9aa2a2ead28a3bfb5414ca79822c46148d41f0ecc69023cf2080c547650643f4"
+  },
+  {
+    "arquivo": "lemma-logo-fundo-azul.png",
+    "bytes": 129102,
+    "sha256": "37a5c3307add5ec44bd283685377d15f8ac4d8d653aa4629e18b828b7a4670aa"
+  },
+  {
+    "arquivo": "lemma-logo-fundo-azul.svg",
+    "bytes": 12122,
+    "sha256": "b8e17caae40fd1dde5e2210c2e686fd3182e55e5073ed051e462030f1ddf6899"
+  },
+  {
+    "arquivo": "lemma-logo-uma-tinta.png",
+    "bytes": 106909,
+    "sha256": "69651f4db19b7056b24b2f407b051c121ddda6f42b9f232d6128f4a7e7d53cda"
+  },
+  {
+    "arquivo": "lemma-logo-uma-tinta.svg",
+    "bytes": 11748,
+    "sha256": "0ea2ead05bdea6c41cff38ca927dc8305178601c1c24bae4dcadec068740684b"
+  },
+  {
+    "arquivo": "lemma-mascote.png",
+    "bytes": 92108,
+    "sha256": "60f7212d5197f447f916a92428829d736ccc4fc1fb1eb10f4cdf2edf3d2bcae8"
+  },
+  {
+    "arquivo": "lemma-mascote.svg",
+    "bytes": 33347,
+    "sha256": "cb9fe81a83cf5252631840d154ed82aae689a027d02b56d7a0ef54988b177b93"
+  },
+  {
+    "arquivo": "lemma-simbolo-fundo-azul.png",
+    "bytes": 92408,
+    "sha256": "2abc52f22b9a3bc7ac5bd957c2a241fe2b638a2389fa928961caf1182e19d1db"
+  },
+  {
+    "arquivo": "lemma-simbolo-fundo-azul.svg",
+    "bytes": 9806,
+    "sha256": "e8d8f71c40c0285c071c87ede114e5dd61d48d103722be58e6053be73d632087"
+  },
+  {
+    "arquivo": "lemma-simbolo-uma-tinta.png",
+    "bytes": 71378,
+    "sha256": "8cbf03de9cf0473e9c416e9a8a54d5372a899b8422a5f960bea7844009620641"
+  },
+  {
+    "arquivo": "lemma-simbolo-uma-tinta.svg",
+    "bytes": 9432,
+    "sha256": "616577f1ae8517b166ac1ef784dbdf1e9330090f82aab7eadf759dd081c9531d"
+  },
+  {
+    "arquivo": "lemma-simbolo.png",
+    "bytes": 75464,
+    "sha256": "d09e3e14c79f0532bc78af9bb5af2420577c406449d369cd11e2d690631f9aba"
+  },
+  {
+    "arquivo": "lemma-simbolo.svg",
+    "bytes": 9484,
+    "sha256": "c26594cc010d8e0dc6a891d59186ef3f04067b94b2dccfeaa4541d556147a912"
+  },
+  {
+    "arquivo": "previa-mascote.jpg",
+    "bytes": 37358,
+    "sha256": "cf68cf9846930c9a790fb05c41d90e421c2789cda905b5fbdb9ee128b7766ab6"
+  },
+  {
+    "arquivo": "previa-v2.jpg",
+    "bytes": 117470,
+    "sha256": "666aff5633293182ceb4b1590b4ccde8e2a18bc35f8bc3b546eb6bb8f1ee1543"
+  }
+]
