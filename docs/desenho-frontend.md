@@ -1,6 +1,6 @@
 # Desenho do Frontend (Container 1)
 
-Escrito em 16/11/2026. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
+Escrito em 16/11/2026, atualizado em 17/11/2026 depois do F1. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
 
 Legenda:
 - **[Contrato]**: já definido na Especificação ou no Core API. Só muda emendando a ficha.
@@ -10,7 +10,7 @@ Legenda:
 - **[Decidido]**: decisão do responsável do módulo (Igor), com a data.
 - **[Verificado]**: conferido por cálculo ou por fonte, com a data.
 
-Nada aqui está decidido ainda, exceto o que traz a marca [Contrato], [Marca] ou [Decidido]. A seção 14 lista o que preciso que você confirme.
+Em 17/11/2026 o Igor confirmou as decisões 1 a 4, 6 e 7 da seção 14; a 5 (histórico) segue [Aberto]. O que é [Sugestão] nas seções 3 a 6 e 8 a 12 passa a valer como decidido, salvo onde a seção 14 diz o contrário.
 
 ---
 
@@ -110,7 +110,7 @@ Tema: **um tema** na primeira versão. [Sugestão] Fundo claro nas telas de uso,
 | Corpo, botões, rótulos | Jost | 400 e 500 |
 | Endereço, hash, `taskId` | monoespaçada do sistema | 400 |
 
-[Aberto, verificar no passo F1] A Jost não precisa ter algarismos tabulares. O agente confere `font-variant-numeric: tabular-nums` na Jost; se não houver, valores alinhados em coluna usam a monoespaçada.
+[Verificado no F1, 16/11/2026] O woff2 latin do `@fontsource-variable/jost` tem a feature `tnum`: com `font-variant-numeric: tabular-nums` os 10 algarismos ficam com a mesma largura (580 unidades); sem ela variam de 450 a 600. Valores em coluna usam Jost com `tabular-nums`, sem recorrer à monoespaçada (que fica para endereço, hash e `taskId`).
 
 A fonte do produto é decisão que o guia deixou aberta (seção 7, "uso da Jost em títulos ou textos"). Escolher a Jost é a opção mais coerente e a mais simples (uma fonte só); o custo é que ela é geométrica e pede um pouco mais de espaçamento de linha no corpo.
 
@@ -144,7 +144,7 @@ Rota protegida sem token válido leva a `/entrar`. Rota pública com sessão vá
 
 ### 6.1 Cadastro e login (E1, E2)
 
-- Cadastro: e-mail e senha. Validação no cliente igual à do Core API, só para dar resposta rápida; quem decide é o servidor. E-mail no formato simples e até 254 caracteres; senha de 8 a **72 bytes** em UTF-8 (conta com `TextEncoder`, não com `length`, por causa de acentos e emojis). Botão para mostrar a senha.
+- Cadastro: e-mail e senha. Validação no cliente igual à do Core API, só para dar resposta rápida; quem decide é o servidor. E-mail no formato simples e até 254 caracteres; senha com no mínimo 8 **caracteres** (code points, como o `codePointCount` do Core API: um emoji conta 1) e no máximo **72 bytes** em UTF-8 (conta com `TextEncoder`, não com `length`). Exemplo: `çãõé` tem 4 caracteres e 8 bytes, e o servidor recusa. Botão para mostrar a senha.
 - Em `201`: **tela de confirmação** com o endereço público ("Sua carteira foi criada") e o botão "Entrar", com o e-mail já preenchido. Segue o E1 passo 5 e o E2 passo 8 (mostrar o endereço e abrir o login). Não faz login automático. Nunca pede nem mostra chave privada.
 - Login: `200` guarda o token e vai a `/carteira`. `401 INVALID_CREDENTIALS` mostra a mensagem e não guarda nada.
 - Botão desabilitado enquanto a requisição está em andamento.
@@ -200,6 +200,8 @@ Alternativas:
 
 **Recomendo C, depois do fluxo principal.** O custo é um passo pequeno e o ganho é visível na demonstração. Isso não bloqueia nada: os passos F1 a F6 não dependem dele, e a tela da carteira reserva o espaço da lista. Se o grupo preferir não mexer no Core API, A é aceitável e B não vale o esforço. Se C for aprovado, o passo vira C10 no Core API, e a alternância de contas do Core API continua (o próximo seria o Guillermo).
 
+**Custo e riscos do C10** (registrado em 17/11/2026, sem decisão): não há problema técnico; é decisão de escopo. (1) Reabre o Core API, que está completo e provado na Sepolia (C1 a C9, 392 testes), por uma rota que a Especificação entregue não tem: exige ficha nova, teste, atualização do README e uma nova rodada do roteiro ponta a ponta. (2) Conta de commit e sigilo seguem a regra do Core API (próximo passo: Guillermo). (3) Precisa conferir se a tabela `eth_transaction` guarda destino, valor e data (sem isso a lista mostraria só estado e hash). (4) A banca não exige histórico; o ganho é de produto. Por isso a decisão fica para depois do F5: com o fluxo principal funcionando e o tempo restante conhecido, escolhe-se C (F8) ou o mínimo que não mexe no Core API, que é guardar no `sessionStorage` o `taskId` da última transação enviada e mostrar um atalho "Acompanhar a última transação" na carteira.
+
 ## 8. Cliente da API
 
 Um único módulo (`src/api/client.ts`) por onde passa toda chamada.
@@ -244,9 +246,9 @@ Detalhes:
 
 | Item | Proposta |
 |---|---|
-| Dockerfile | Multi-stage: etapa Node faz o `npm ci` e o `npm run build`; etapa final `nginx` (tag fixa) serve a pasta `dist` com **fallback de SPA** (`try_files $uri /index.html`), usuário não root quando a imagem permitir |
-| Compose do repositório | Serviço `frontend`, porta publicada em **`127.0.0.1:5173`** (container escuta em 80) |
-| Por que 5173 | É a origem que o Core API já libera (`CORS_ALLOWED_ORIGIN=http://localhost:5173`): **nenhuma mudança no Core API** |
+| Dockerfile | Multi-stage: etapa Node faz o `npm ci` e o `npm run build`; etapa final `nginx-unprivileged` (tag fixa) serve a pasta `dist` com **fallback de SPA** (`try_files $uri /index.html`), usuário não root quando a imagem permitir |
+| Compose do repositório | Serviço `frontend`, porta publicada em **`127.0.0.1:5173`** (o container escuta em **8080**, porque a imagem `nginx-unprivileged` roda sem root; mapeamento `127.0.0.1:5173:8080`) |
+| Por que 5173 | É a origem que o Core API já libera (`CORS_ALLOWED_ORIGIN=http://localhost:5173`): **nenhuma mudança no Core API**. O Core API compara a origem como texto exato: abra `http://localhost:5173`, nunca `http://127.0.0.1:5173` |
 | URL da API | `VITE_API_URL` como argumento de build, padrão `http://localhost:8080` |
 | Rede `lemma-dev` | **Não precisa.** O navegador chama o Core API pela porta publicada no host; não há chamada de container para container |
 | Desenvolvimento diário | `npm run dev` no host (Vite em 5173). Container e Vite usam a mesma porta, então rodam um por vez |
@@ -286,7 +288,7 @@ Regras: página não chama `fetch`; só chama `api/`. `api/` não conhece React.
 
 ### 13.1 Testes
 
-1. **Unitários:** `format` (ETH por texto sem `Number`, casas, vírgula e ponto), validação de e-mail, senha (limite de 72 **bytes**), endereço e valor, mapa de erros, reviver decimal (com e sem `context`), cálculo da variação.
+1. **Unitários:** `format` (ETH por texto sem `Number`, casas, vírgula e ponto), validação de e-mail, senha (mínimo de 8 caracteres e máximo de 72 **bytes**), endereço e valor, mapa de erros, reviver decimal (com e sem `context`), cálculo da variação.
 2. **Hooks com relógio falso:** `useTransactionPolling` (para em estado final; nunca duas requisições em voo; recua o intervalo em falha; pausa com a aba escondida; cancela ao sair; aviso aos 10 minutos) e o cache de 60 s do mercado.
 3. **Componentes:** formulários (mensagens por `code`, botão desabilitado durante a requisição, trava de clique duplo com dois cliques seguidos gerando **uma** chamada), `RequireAuth`, tratamento de `TOKEN_INVALID`, contagem regressiva do `429`.
 4. **Roteiro manual ponta a ponta** (Core API e Blockchain Service reais, na Sepolia): cadastrar, entrar, ver saldo, abastecer o usuário pelo procedimento já documentado no README do Core API ("Como abastecer a carteira de um usuário"), enviar, ver `PENDING` virar `CONFIRMED` sem recarregar, conferir o saldo; depois um envio que a rede recusa (valor acima do saldo) e ver `FAILED`. O teste de carga do E7 (H10.2) passa pelo Frontend só para ver a mensagem de limite.
@@ -294,16 +296,16 @@ Regras: página não chama `fetch`; só chama `api/`. `api/` não conhece React.
 
 ### 13.2 Passos
 
-Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<id>`. Como o repositório é seu, os commits saem da sua conta, sem alternância e sem a regra de sigilo do Core API. Os números dos cards do Frontend **ainda não foram conferidos**: preciso do print do Kanban (ou da lista) para preencher a coluna.
+Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<id>`. Como o repositório é seu, os commits saem da sua conta, sem alternância e sem a regra de sigilo do Core API. Números dos cards levantados no histórico da revisão do backlog (18/10/2026): H05.3 (#878, envio) e H08.3 (#887, acompanhamento) confirmados pelo texto; H02.3 (#870), H03.2 (#872), H04.3 (#875) e H06.3 (#881) pela numeração das tasks do Frontend, **a conferir no OpenProject antes de usar nos rodapés**.
 
 | # | Passo | Pronto quando | Card |
 |---|---|---|---|
-| F1 | Esqueleto Vite + TS + Tailwind + Router; tokens da seção 4; fonte; Dockerfile, nginx e compose na porta 5173; ativos da marca; cabeçalho com o logo; cliente da API (erros, decimal, tempo limite); `.env.example`; `docs/desenho-frontend.md` no repositório | `docker compose up` serve o app em `http://localhost:5173` com o logo e o favicon; recarregar uma rota profunda não dá 404; testes do cliente e do reviver verdes | H01.5 (#1315, parte Frontend) e H01.2 (#865, parte Frontend) |
-| F2 | Cadastro (com a tela de confirmação), login, `AuthContext`, `sessionStorage`, `RequireAuth`, tratamento centralizado de `TOKEN_INVALID` | Cadastrar, ver o endereço, entrar, recarregar mantendo a sessão, token vencido volta ao login, senha errada mostra a mensagem e não guarda token | cards de E1/E2 do Frontend (a conferir) |
-| F3 | Carteira: cartão de saldo, copiar endereço, "Receber", esqueletos | Saldo real do Core API em texto, sem perda de dígitos; 502 do saldo mostra estado de erro com nova tentativa | card de E3 do Frontend (a conferir) |
-| F4 | Envio: formulário, revisão, trava de clique duplo, erros por `code` | Um envio real devolve `202` e abre `/transacoes/{taskId}`; dois cliques seguidos fazem **uma** chamada; endereço e valor inválidos mostram a mensagem certa | card de E4 do Frontend (a conferir) |
-| F5 | Acompanhamento: polling, linha do tempo, hash, motivos de falha, aviso de demora | `PENDING` vira `CONFIRMED` sem recarregar; `FAILED` mostra o motivo; sair da tela cancela o polling; saldo atualiza ao voltar | card de E5 do Frontend (a conferir) |
-| F6 | Mercado: painel, gráfico SVG, cache de 60 s, `429` com contagem, `502` | Contra o External Data Service real ou um falso: preço e gráfico; `429` mostra a contagem e libera o botão ao fim; `502` mostra "indisponível" sem afetar o saldo | card de E6/E7 do Frontend (a conferir) |
+| F1 | Esqueleto Vite + TS + Tailwind + Router; tokens da seção 4; fonte; Dockerfile, nginx e compose na porta 5173; ativos da marca; cabeçalho com o logo; cliente da API (erros, decimal, tempo limite); `.env.example`; `docs/desenho-frontend.md` no repositório | `docker compose up` serve o app em `http://localhost:5173` com o logo e o favicon; recarregar uma rota profunda não dá 404; testes do cliente e do reviver verdes | H01.5 (#1315, parte Frontend) e H01.2 (#865, parte Frontend). **Feito em 17/11/2026** (12 commits na branch `h01-5-frontend-esqueleto`; 56 testes; favicon "L" gerado da `Jost.ttf` conforme a seção 8 do guia) |
+| F2 | Cadastro (com a tela de confirmação), login, `AuthContext`, `sessionStorage`, `RequireAuth`, tratamento centralizado de `TOKEN_INVALID` | Cadastrar, ver o endereço, entrar, recarregar mantendo a sessão, token vencido volta ao login, senha errada mostra a mensagem e não guarda token | H02.3 (#870, cadastro) e H03.2 (#872, login) |
+| F3 | Carteira: cartão de saldo, copiar endereço, "Receber", esqueletos | Saldo real do Core API em texto, sem perda de dígitos; 502 do saldo mostra estado de erro com nova tentativa | H04.3 (#875) |
+| F4 | Envio: formulário, revisão, trava de clique duplo, erros por `code` | Um envio real devolve `202` e abre `/transacoes/{taskId}`; dois cliques seguidos fazem **uma** chamada; endereço e valor inválidos mostram a mensagem certa | H05.3 (#878) |
+| F5 | Acompanhamento: polling, linha do tempo, hash, motivos de falha, aviso de demora | `PENDING` vira `CONFIRMED` sem recarregar; `FAILED` mostra o motivo; sair da tela cancela o polling; saldo atualiza ao voltar | H08.3 (#887) |
+| F6 | Mercado: painel, gráfico SVG, cache de 60 s, `429` com contagem, `502` | Contra o External Data Service real ou um falso: preço e gráfico; `429` mostra a contagem e libera o botão ao fim; `502` mostra "indisponível" sem afetar o saldo | H06.3 (#881) |
 | F7 | Acabamento: acessibilidade, movimento, 404, README do Frontend, roteiro manual ponta a ponta registrado | Roteiro 4 da seção 13.1 passa; contrastes e 360 px conferidos | H04.4 (#1317, parte Frontend) e cards de teste |
 | F8 (se a opção C da seção 7 for aprovada) | Lista de atividade na carteira, depois do passo C10 no Core API | Lista das últimas transações do usuário, cada uma levando ao acompanhamento | novo (a criar) |
 
@@ -311,7 +313,7 @@ Dependências: F1 antes de todos; F2 antes de F3 a F6; F4 antes de F5; F6 não d
 
 ## 14. Decisões e divergências
 
-### Para você confirmar
+### Decisões (confirmadas em 17/11/2026, exceto a 5)
 
 1. **Camada de produto da seção 4** (tons derivados, Jost em tudo, um tema só). É decisão sua, porque o guia a deixou aberta.
 2. **Cinco momentos visuais da seção 5**, em particular o mascote grande só na entrada.
@@ -320,13 +322,13 @@ Dependências: F1 antes de todos; F2 antes de F3 a F6; F4 antes de F5; F6 não d
 5. **Histórico:** opção A, B ou C (seção 7). Recomendo C, depois do fluxo principal.
 6. **Mercado com cache de 60 s em memória** para não esgotar o limite global (seção 6.2).
 7. **Cadastro termina na tela de confirmação com o endereço**, sem login automático (segue o E1/E2).
-8. **Passos F1 a F7** e o print do Kanban com os cards do Frontend.
+8. **Passos F1 a F7**, com os cards da seção 13.2. [Decidido]
+
+Status: 1, 2, 3, 4, 6, 7 e 8 [Decidido, 17/11/2026]. A 5 [Aberto]: ver a seção 7 e o que diz sobre o custo do C10.
 
 ### Abertos que não bloqueiam
 
-- Algarismos tabulares da Jost (verificar em F1).
 - Tema escuro completo, QR code de "Receber" e histórico: ficam depois.
-- O repositório `-frontend` só tem `docs/fluxos/`? O agente confere no primeiro plano; se houver código, o F1 parte dele.
 - Estado do External Data Service (Lucas): não bloqueia o F1 a F5; o F6 roda contra `502` até ele existir.
 - Tempo limite de task e retentativa de webhook (P4): do backend; o Frontend só mostra o aviso de demora.
 - A formulação final de "Frontend sem responsável" na Especificação: passa a valer "Igor", como decisão posterior à Entrega 2.
@@ -336,3 +338,6 @@ Dependências: F1 antes de todos; F2 antes de F3 a F6; F4 antes de F5; F6 não d
 1. **Responsável do Frontend:** a Especificação diz "sem responsável definido"; passa a ser o Igor (decidido em 16/11/2026).
 2. **Limite de gás (P8):** o Blockchain Service assina com 500.000, não 21.000, e um envio a conta nova gastou ~204.600 no C9. Efeito no Frontend: sem botão "enviar tudo" e mensagem de folga.
 3. **Mascote e interface:** o guia limita onde o mascote pode aparecer; a seção 5 respeita isso.
+4. **Favicon:** o pacote `lemma-artes` (v2) traz o favicon com o rosto, que o guia (seção 8) diz ter sido descartado. O "L" oficial vive no kit `lemma-identidade-final/favicon/`, fora do Project; o repositório usa um "L" gerado da `Jost.ttf` (instância 500) com as medidas do guia. Trocar pelo do kit se ele estiver disponível.
+5. **Porta interna:** 8080, não 80 (imagem `nginx-unprivileged`).
+6. **Senha:** mínimo de 8 caracteres (code points) e máximo de 72 bytes, não "8 a 72 bytes".
