@@ -115,4 +115,16 @@ describe('Skeleton', () => {
     expect(block).toHaveAttribute('aria-hidden', 'true')
     expect(block).toHaveClass('animate-shimmer', 'h-10', 'w-48')
   })
+
+  it('por padrão usa os tons do cartão azul', () => {
+    const { container } = render(<Skeleton />)
+    expect(container.firstElementChild).toHaveClass('from-primary-hover', 'via-primary', 'to-primary-hover')
+  })
+
+  it('tone="light" usa tons claros, para superfície clara', () => {
+    const { container } = render(<Skeleton tone="light" />)
+    const block = container.firstElementChild
+    expect(block).toHaveClass('animate-shimmer', 'from-divider', 'via-bg', 'to-divider')
+    expect(block).not.toHaveClass('via-primary')
+  })
 })

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { pendingResponse } from '../test/fetch'
+import { fakeResponse, pendingResponse } from '../test/fetch'
 import {
   BACKOFF_MS,
   POLL_INTERVAL_MS,
@@ -15,19 +15,6 @@ const TOKEN = 'token-de-teste'
 const TASK_ID = 'a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b'
 const ADDRESS = '0x5B38Da6a701c568545dCfcB03FcB875f56beddC4'
 const HASH = '0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060'
-
-/**
- * Resposta mínima (ok, status, headers, text) que resolve sem depender do
- * corpo em stream do Node: com relógio falso, só microtarefas a resolvem.
- */
-function fakeResponse(status: number, body: string): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    headers: new Headers(),
-    text: () => Promise.resolve(body),
-  } as unknown as Response
-}
 
 function tx(status: string, extra: Record<string, string> = {}, amountEth = '0.01') {
   const fields = { taskId: TASK_ID, status, destinationAddress: ADDRESS, updatedAt: '2026-10-20T14:36:10Z', ...extra }

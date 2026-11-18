@@ -9,3 +9,17 @@ export function pendingResponse(signal?: AbortSignal | null): Promise<Response> 
     else signal?.addEventListener('abort', abort, { once: true })
   })
 }
+
+/**
+ * Resposta mínima (ok, status, headers, text) para o cliente da API. Resolve
+ * só com microtarefas, sem o corpo em stream do Node, então funciona com
+ * relógio falso.
+ */
+export function fakeResponse(status: number, body: string): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers(),
+    text: () => Promise.resolve(body),
+  } as unknown as Response
+}

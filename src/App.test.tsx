@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Logo } from './components/brand/Logo'
 import { renderApp, storeValidSession } from './test/renderApp'
 
@@ -16,11 +16,16 @@ describe('rotas', () => {
     expect(logo).toHaveAttribute('height', '40')
   })
 
-  it('mostra o taskId da rota de acompanhamento como texto', async () => {
+  it('a rota de acompanhamento abre a tela e consulta o taskId da URL', async () => {
     storeValidSession()
     renderApp('/transacoes/a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b')
 
-    expect(await screen.findByText('a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Acompanhamento da transação' }),
+    ).toBeInTheDocument()
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
+      'http://localhost:8080/transactions/a3f1c2d4-5b6e-4f70-8a91-0c2d3e4f5a6b',
+    )
   })
 })
 

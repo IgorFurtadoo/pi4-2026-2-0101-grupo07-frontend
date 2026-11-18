@@ -10,3 +10,16 @@ export function parseIsoInstant(text: unknown): number | null {
   const ms = Date.parse(text)
   return Number.isFinite(ms) ? ms : null
 }
+
+const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: 'short', timeStyle: 'medium' }
+
+/**
+ * Instante ISO UTC do Core API em data e hora pt-BR ("20/10/2026, 11:36:10"),
+ * no fuso do navegador, ou no `timeZone` dado (os testes passam "UTC"). Texto
+ * que não é um instante válido volta como veio.
+ */
+export function formatInstant(text: string, timeZone?: string): string {
+  const ms = parseIsoInstant(text)
+  if (ms === null) return text
+  return new Date(ms).toLocaleString('pt-BR', { ...DATE_TIME_FORMAT, timeZone })
+}

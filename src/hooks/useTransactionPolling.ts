@@ -43,7 +43,7 @@ function toPollingError(error: unknown): PollingError {
   return { code: 'INTERNAL_ERROR' }
 }
 
-/** Espera depois de `failures` falhas seguidas (1, 2, 3, …), por índice e sem Math. */
+/** Espera depois de `failures` falhas seguidas (1, 2, 3, …), escolhida por índice na tabela. */
 function backoffFor(failures: number): number {
   return failures >= BACKOFF_MS.length ? BACKOFF_MS[BACKOFF_MS.length - 1] : BACKOFF_MS[failures - 1]
 }
