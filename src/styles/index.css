@@ -72,6 +72,20 @@
       background-position: -100% 0;
     }
   }
+
+  /* Linha do tempo (seção 5, momento 4): o ícone do estado final se desenha. Movimento opcional. */
+  --animate-draw: draw 0.7s ease-out both;
+
+  @keyframes draw {
+    from {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+    }
+    to {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 0;
+    }
+  }
 }
 
 @layer base {
