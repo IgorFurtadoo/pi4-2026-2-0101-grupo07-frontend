@@ -1,14 +1,11 @@
 import { isValidAddress } from '../lib/validate'
 import { apiRequest, decimalToText } from './client'
-import { isRecord, unexpectedResponse } from './response'
+import { PLAIN_DECIMAL, isRecord, unexpectedResponse } from './response'
 
 /**
  * Saldo da carteira (ficha CT6). Rota protegida: leva o token. Só chama
  * apiRequest; não conhece React.
  */
-
-/** Decimal em notação plana, como o Core API garante (WRITE_BIGDECIMAL_AS_PLAIN). */
-const PLAIN_DECIMAL = /^\d+(\.\d+)?$/
 
 /** CT6: 200 { ethereumAddress, balanceEth, network }. */
 export type Balance = {
