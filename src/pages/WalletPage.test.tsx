@@ -1,8 +1,9 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ERROR_MESSAGES } from '../api/errors'
 import { SESSION_KEY } from '../auth/sessionStorage'
 import { pendingResponse } from '../test/fetch'
+import { MARKET_URL, marketBody } from '../test/market'
 import { TEST_TOKEN, renderApp, storeValidSession } from '../test/renderApp'
 
 type FetchArgs = [url: string, init: RequestInit]
@@ -23,21 +24,42 @@ function errorResponse(status: number, code: string) {
   })
 }
 
+type Reply = Response | Promise<Response> | Error | 'pendente'
+
+/** Resposta simulada que respeita o signal, como o navegador. */
+function reply(next: Reply, init: RequestInit): Promise<Response> {
+  const pending = pendingResponse(init.signal)
+  if (next === 'pendente') return pending
+  if (next instanceof Error) return Promise.reject(next)
+  return Promise.race([pending, Promise.resolve(next)])
+}
+
 /**
- * fetch simulado que responde na ordem dada e respeita o signal, como o
- * navegador. "pendente" nunca responde; uma Promise responde quando o teste quiser.
+ * fetch simulado por rota: o saldo responde na ordem de `balance` e o
+ * mercado na de `market`. Fila vazia fica pendente ("pendente" nunca
+ * responde; uma Promise responde quando o teste quiser).
  */
-function stubFetch(...responses: Array<Response | Promise<Response> | Error | 'pendente'>) {
-  const queue = [...responses]
-  const fetchMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) => {
-    const next = queue.shift() ?? 'pendente'
-    const pending = pendingResponse(init.signal)
-    if (next === 'pendente') return pending
-    if (next instanceof Error) return Promise.reject(next)
-    return Promise.race([pending, Promise.resolve(next)])
-  })
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
+function stubRoutes(balance: Reply[], market: Reply[] = []) {
+  const balanceQueue = [...balance]
+  const marketQueue = [...market]
+  const balanceMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) =>
+    reply(balanceQueue.shift() ?? 'pendente', init),
+  )
+  const marketMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) =>
+    reply(marketQueue.shift() ?? 'pendente', init),
+  )
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string, init: RequestInit) =>
+      url === MARKET_URL ? marketMock(url, init) : balanceMock(url, init),
+    ),
+  )
+  return { balanceMock, marketMock }
+}
+
+/** Só o saldo; o mercado fica pendente. Devolve o mock do saldo. */
+function stubFetch(...responses: Reply[]) {
+  return stubRoutes(responses).balanceMock
 }
 
 function openWallet() {
@@ -67,8 +89,10 @@ describe('WalletPage', () => {
     const { container } = openWallet()
 
     await screen.findByRole('heading', { name: 'Carteira' })
-    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
-    expect(container.querySelector('[data-skeleton]')).toHaveAttribute('aria-hidden', 'true')
+    // Só a área do saldo: o painel de mercado (pendente aqui) tem o seu próprio aria-busy.
+    const area = container.querySelector('section[aria-labelledby="titulo-carteira"] > [aria-busy]')
+    expect(area).toHaveAttribute('aria-busy', 'true')
+    expect(area?.querySelector('[data-skeleton]')).toHaveAttribute('aria-hidden', 'true')
     expect(screen.getByText('Carregando saldo…')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Atualizar saldo' })).toBeNull()
 
@@ -76,8 +100,8 @@ describe('WalletPage', () => {
     const card = await balanceCard()
     expect(card).toHaveTextContent('0,002499 ETH')
     expect(card).toHaveTextContent('Valor exato: 0,002499999999601 ETH')
-    expect(container.querySelector('[aria-busy="true"]')).toBeNull()
-    expect(container.querySelector('[data-skeleton]')).toBeNull()
+    expect(area).toHaveAttribute('aria-busy', 'false')
+    expect(area?.querySelector('[data-skeleton]')).toBeNull()
 
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('http://localhost:8080/wallet/balance')
@@ -234,5 +258,104 @@ describe('WalletPage com 401 TOKEN_INVALID (integração com o AuthContext)', ()
     expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull()
     expect(fetchMock).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Carteira' })).toBeNull())
+  })
+})
+
+describe('WalletPage com o painel de mercado', () => {
+  function marketResponse(prices?: string[], current?: string) {
+    return new Response(marketBody(prices, current), { status: 200 })
+  }
+
+  function marketPanel() {
+    return screen.findByRole('region', { name: 'Mercado · ETH' })
+  }
+
+  it('mostra o saldo e o mercado, cada um pela sua rota', async () => {
+    const { balanceMock, marketMock } = stubRoutes(
+      [balanceResponse('1.5')],
+      [marketResponse(['2000', '2200'], '3200.45')],
+    )
+    openWallet()
+
+    expect(await balanceCard()).toHaveTextContent('1,5 ETH')
+    const panel = await marketPanel()
+    await waitFor(() => expect(panel.textContent?.replace(/\u00a0/g, ' ')).toContain('US$ 3.200,45'))
+    expect(balanceMock).toHaveBeenCalledTimes(1)
+    expect(marketMock).toHaveBeenCalledTimes(1)
+    expect((marketMock.mock.calls[0][1].headers as Record<string, string>).Authorization).toBe(
+      `Bearer ${TEST_TOKEN}`,
+    )
+  })
+
+  it('502 do mercado fica no painel: o saldo e as ações seguem funcionando', async () => {
+    const { balanceMock } = stubRoutes(
+      [balanceResponse('2'), balanceResponse('3')],
+      [errorResponse(502, 'MARKET_DATA_UNAVAILABLE')],
+    )
+    openWallet()
+
+    const panel = await marketPanel()
+    expect(await within(panel).findByRole('alert')).toHaveTextContent('Mercado indisponível')
+    expect(await balanceCard()).toHaveTextContent('2 ETH')
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar saldo' }))
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Saldo' })).toHaveTextContent('3 ETH'))
+    expect(balanceMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('link', { name: 'Enviar' })).toBeInTheDocument()
+  })
+
+  it('429 do mercado não afeta o saldo', async () => {
+    stubRoutes(
+      [balanceResponse('2')],
+      [
+        new Response(JSON.stringify({ code: 'RATE_LIMIT_EXCEEDED', message: 'x' }), {
+          status: 429,
+          headers: { 'Retry-After': '30' },
+        }),
+      ],
+    )
+    openWallet()
+
+    const panel = await marketPanel()
+    expect(await within(panel).findByText('Tente de novo em 30 s.')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Atualizar' })).toBeDisabled()
+    expect(await balanceCard()).toHaveTextContent('2 ETH')
+  })
+
+  it('falha do saldo não impede o mercado', async () => {
+    stubRoutes([errorResponse(502, 'BLOCKCHAIN_UNAVAILABLE')], [marketResponse()])
+    openWallet()
+
+    expect(await screen.findByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
+    const panel = await marketPanel()
+    await waitFor(() => expect(panel.textContent?.replace(/\u00a0/g, ' ')).toContain('US$ 3.200,45'))
+  })
+
+  it('401 TOKEN_INVALID no mercado segue o tratamento central e leva a /entrar', async () => {
+    stubRoutes(['pendente'], [errorResponse(401, 'TOKEN_INVALID')])
+    const { router } = openWallet()
+
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/entrar')
+    expect(screen.getByRole('alert')).toHaveTextContent('Sua sessão expirou. Entre novamente.')
+    expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull()
+  })
+
+  it('sair e voltar à carteira dentro de 60 s não busca o mercado de novo', async () => {
+    const { marketMock } = stubRoutes(
+      [balanceResponse('1'), balanceResponse('1')],
+      [marketResponse(), marketResponse()],
+    )
+    const { router } = openWallet()
+    const panel = await marketPanel()
+    await waitFor(() => expect(panel.textContent).toContain('3.200,45'))
+
+    await act(() => router.navigate('/enviar'))
+    await act(() => router.navigate('/carteira'))
+    const again = await marketPanel()
+    expect(again.textContent).toContain('3.200,45')
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)))
+    expect(marketMock).toHaveBeenCalledTimes(1)
   })
 })
