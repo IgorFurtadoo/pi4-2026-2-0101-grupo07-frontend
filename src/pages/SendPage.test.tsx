@@ -33,15 +33,19 @@ function deferred() {
   return { promise, resolve }
 }
 
+/** URL do envio (CT9). A atividade da carteira (/wallet/transactions) não é ela. */
+const SEND_URL = 'http://localhost:8080/transactions'
+
 /**
  * fetch simulado: POST /transactions responde na ordem dada e respeita o
- * signal; qualquer outra rota (o saldo da carteira) fica pendente.
+ * signal; qualquer outra rota (saldo, mercado e atividade da carteira) fica
+ * pendente.
  */
 function stubFetch(...replies: Reply[]) {
   const queue = [...replies]
   const fetchMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((url, init) => {
     const pending = pendingResponse(init.signal)
-    if (!url.endsWith('/transactions')) return pending
+    if (url !== SEND_URL) return pending
     const next = queue.shift() ?? 'pendente'
     if (next === 'pendente') return pending
     if (next instanceof Error) return Promise.reject(next)
@@ -52,7 +56,7 @@ function stubFetch(...replies: Reply[]) {
 }
 
 function sendCalls(fetchMock: ReturnType<typeof stubFetch>) {
-  return fetchMock.mock.calls.filter(([url]) => url.endsWith('/transactions')).length
+  return fetchMock.mock.calls.filter(([url]) => url === SEND_URL).length
 }
 
 async function openSend(entry: Parameters<typeof renderApp>[0] = '/enviar') {
@@ -252,7 +256,7 @@ describe('SendPage: envio', () => {
     expect(router.state.historyAction).toBe('REPLACE')
     expect(sendCalls(fetchMock)).toBe(1)
 
-    const [, init] = fetchMock.mock.calls.find(([url]) => url.endsWith('/transactions'))!
+    const [, init] = fetchMock.mock.calls.find(([url]) => url === SEND_URL)!
     expect(init.body).toBe(`{"destinationAddress":"${ADDRESS}","amountEth":"0.01"}`)
     expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TEST_TOKEN}`)
 
@@ -458,7 +462,7 @@ describe('SendPage: sair com o envio em voo', () => {
     await screen.findByRole('heading', { name: 'Carteira' })
 
     // A requisição não foi cancelada ao sair.
-    const [, init] = fetchMock.mock.calls.find(([url]) => url.endsWith('/transactions'))!
+    const [, init] = fetchMock.mock.calls.find(([url]) => url === SEND_URL)!
     expect(init.signal?.aborted).toBe(false)
 
     await act(async () => pending.resolve(reply()))

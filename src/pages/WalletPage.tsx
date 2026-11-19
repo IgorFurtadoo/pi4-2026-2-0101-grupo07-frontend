@@ -2,6 +2,7 @@ import { RefreshCw } from 'lucide-react'
 import { useId, useState } from 'react'
 import { messageFor } from '../api/errors'
 import { useAuth } from '../auth/useAuth'
+import { ActivityList } from '../components/activity/ActivityList'
 import { MarketPanel } from '../components/market/MarketPanel'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -27,11 +28,12 @@ function BalanceCardSkeleton() {
 }
 
 /**
- * Carteira (CT6 e CT17, desenho, seções 5 e 6.2): saldo ao abrir e pelo
- * botão "Atualizar saldo", sem polling, e o painel de mercado abaixo, que
- * não depende do saldo (uma falha num não afeta o outro). Erros pelo code,
- * com ícone e texto, sem mascote. O TOKEN_INVALID é tratado no cliente e no
- * AuthContext (o RequireAuth leva a /entrar). Sem "atividade recente".
+ * Carteira (CT6, CT17 e CT26, desenho, seções 5, 6.2 e 7): saldo ao abrir e
+ * pelo botão "Atualizar saldo", sem polling; abaixo, o painel de mercado e a
+ * lista de atividade, sempre montados e independentes do saldo e entre si
+ * (uma falha num não afeta os outros). Erros pelo code, com ícone e texto,
+ * sem mascote (o mascote só aparece no vazio da atividade). O TOKEN_INVALID é
+ * tratado no cliente e no AuthContext (o RequireAuth leva a /entrar).
  */
 export function WalletPage() {
   const { session } = useAuth()
@@ -100,6 +102,7 @@ export function WalletPage() {
       </div>
 
       <MarketPanel token={session?.token ?? ''} />
+      <ActivityList token={session?.token ?? ''} />
     </section>
   )
 }

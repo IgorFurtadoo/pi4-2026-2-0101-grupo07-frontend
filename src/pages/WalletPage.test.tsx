@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ERROR_MESSAGES } from '../api/errors'
 import { SESSION_KEY } from '../auth/sessionStorage'
+import { ACTIVITY_URL, activityBody, activityItem } from '../test/activity'
 import { pendingResponse } from '../test/fetch'
 import { MARKET_URL, marketBody } from '../test/market'
 import { TEST_TOKEN, renderApp, storeValidSession } from '../test/renderApp'
@@ -35,26 +36,35 @@ function reply(next: Reply, init: RequestInit): Promise<Response> {
 }
 
 /**
- * fetch simulado por rota: o saldo responde na ordem de `balance` e o
- * mercado na de `market`. Fila vazia fica pendente ("pendente" nunca
- * responde; uma Promise responde quando o teste quiser).
+ * fetch simulado por rota: o saldo responde na ordem de `balance`, o
+ * mercado na de `market` e a atividade na de `activity`. Fila vazia fica
+ * pendente ("pendente" nunca responde; uma Promise responde quando o teste
+ * quiser).
  */
-function stubRoutes(balance: Reply[], market: Reply[] = []) {
+function stubRoutes(balance: Reply[], market: Reply[] = [], activity: Reply[] = []) {
   const balanceQueue = [...balance]
   const marketQueue = [...market]
+  const activityQueue = [...activity]
   const balanceMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) =>
     reply(balanceQueue.shift() ?? 'pendente', init),
   )
   const marketMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) =>
     reply(marketQueue.shift() ?? 'pendente', init),
   )
+  const activityMock = vi.fn<(...args: FetchArgs) => Promise<Response>>((_url, init) =>
+    reply(activityQueue.shift() ?? 'pendente', init),
+  )
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init: RequestInit) =>
-      url === MARKET_URL ? marketMock(url, init) : balanceMock(url, init),
+      url === MARKET_URL
+        ? marketMock(url, init)
+        : url === ACTIVITY_URL
+          ? activityMock(url, init)
+          : balanceMock(url, init),
     ),
   )
-  return { balanceMock, marketMock }
+  return { balanceMock, marketMock, activityMock }
 }
 
 /** Só o saldo; o mercado fica pendente. Devolve o mock do saldo. */
@@ -234,7 +244,7 @@ describe('WalletPage', () => {
     expect(panel).not.toBeVisible()
   })
 
-  it('não mostra o mascote em nenhum estado', async () => {
+  it('não mostra o mascote no saldo em nenhum estado (a atividade fica pendente)', async () => {
     stubFetch(errorResponse(502, 'BLOCKCHAIN_UNAVAILABLE'), balanceResponse('1'))
     const { container } = openWallet()
 
@@ -357,5 +367,131 @@ describe('WalletPage com o painel de mercado', () => {
     expect(again.textContent).toContain('3.200,45')
     await act(() => new Promise((resolve) => setTimeout(resolve, 10)))
     expect(marketMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('WalletPage com a lista de atividade', () => {
+  function activityResponse(items: string[]) {
+    return new Response(activityBody(items), { status: 200 })
+  }
+
+  function activityPanel() {
+    return screen.findByRole('region', { name: 'Atividade' })
+  }
+
+  it('lista a atividade abaixo do mercado, pela sua rota, com o token', async () => {
+    const { activityMock } = stubRoutes(
+      [balanceResponse('1')],
+      [],
+      [activityResponse([activityItem({ amountEth: '0.000000000000000001' })])],
+    )
+    const { container } = openWallet()
+
+    const panel = await activityPanel()
+    expect(await within(panel).findByText(/0,000000000000000001 ETH/)).toBeInTheDocument()
+    expect(within(panel).getAllByRole('listitem')).toHaveLength(1)
+    expect(activityMock).toHaveBeenCalledTimes(1)
+    expect((activityMock.mock.calls[0][1].headers as Record<string, string>).Authorization).toBe(
+      `Bearer ${TEST_TOKEN}`,
+    )
+    // Ordem na página: saldo, mercado, atividade.
+    const sections = [...container.querySelectorAll('section[aria-labelledby]')].map((s) =>
+      s.getAttribute('aria-labelledby'),
+    )
+    expect(sections.indexOf('titulo-mercado')).toBeLessThan(sections.indexOf('titulo-atividade'))
+  })
+
+  it('a atividade aparece mesmo com o saldo e o mercado pendentes', async () => {
+    stubRoutes(['pendente'], ['pendente'], [activityResponse([activityItem()])])
+    openWallet()
+
+    const panel = await activityPanel()
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('Carregando saldo…')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['502 HISTORY_UNAVAILABLE', errorResponse(502, 'HISTORY_UNAVAILABLE'), 'Histórico indisponível'],
+    ['500 INTERNAL_ERROR', errorResponse(500, 'INTERNAL_ERROR'), ERROR_MESSAGES.INTERNAL_ERROR],
+  ])('%s do histórico fica no painel: saldo, mercado e ações seguem', async (_name, failure, text) => {
+    const { balanceMock, activityMock } = stubRoutes(
+      [balanceResponse('2'), balanceResponse('3')],
+      [new Response(marketBody(), { status: 200 })],
+      [failure],
+    )
+    openWallet()
+
+    const panel = await activityPanel()
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(text)
+    expect(await balanceCard()).toHaveTextContent('2 ETH')
+    const market = await screen.findByRole('region', { name: 'Mercado · ETH' })
+    await waitFor(() => expect(market.textContent).toContain('3.200,45'))
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Atualizar saldo' }))
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Saldo' })).toHaveTextContent('3 ETH'))
+    expect(balanceMock).toHaveBeenCalledTimes(2)
+    // Atualizar o saldo não relê a atividade.
+    expect(activityMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('link', { name: 'Enviar' })).toBeInTheDocument()
+  })
+
+  it('falha do saldo não impede a atividade', async () => {
+    stubRoutes([errorResponse(502, 'BLOCKCHAIN_UNAVAILABLE')], [], [activityResponse([activityItem()])])
+    openWallet()
+
+    expect(await screen.findByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
+    const panel = await activityPanel()
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('o mascote só aparece no vazio da atividade', async () => {
+    stubRoutes([errorResponse(502, 'BLOCKCHAIN_UNAVAILABLE')], [], [activityResponse([])])
+    const { container } = openWallet()
+
+    const panel = await activityPanel()
+    await within(panel).findByText(/Nenhuma transação ainda/)
+    const mascots = container.querySelectorAll('img[src*="mascote"]')
+    expect(mascots).toHaveLength(1)
+    expect(panel.contains(mascots[0])).toBe(true)
+  })
+
+  it('401 TOKEN_INVALID no histórico segue o tratamento central e leva a /entrar', async () => {
+    stubRoutes(['pendente'], ['pendente'], [errorResponse(401, 'TOKEN_INVALID')])
+    const { router } = openWallet()
+
+    expect(await screen.findByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/entrar')
+    expect(screen.getByRole('alert')).toHaveTextContent('Sua sessão expirou. Entre novamente.')
+    expect(window.sessionStorage.getItem(SESSION_KEY)).toBeNull()
+  })
+
+  it('voltar à carteira relê a atividade (como o saldo, depois de uma transação final)', async () => {
+    const { activityMock } = stubRoutes(
+      [balanceResponse('1'), balanceResponse('1')],
+      [],
+      [activityResponse([]), activityResponse([activityItem()])],
+    )
+    const { router } = openWallet()
+    await within(await activityPanel()).findByText(/Nenhuma transação ainda/)
+
+    await act(() => router.navigate('/enviar'))
+    await act(() => router.navigate('/carteira'))
+
+    const panel = await activityPanel()
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(1)
+    expect(activityMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('sair da tela com a atividade em voo cancela a requisição', async () => {
+    const { activityMock } = stubRoutes(['pendente'], ['pendente'], ['pendente'])
+    const { unmount } = openWallet()
+    await waitFor(() => expect(activityMock).toHaveBeenCalledTimes(1))
+    const signal = activityMock.mock.calls[0][1].signal
+
+    unmount()
+    await act(async () => {})
+
+    expect(signal?.aborted).toBe(true)
   })
 })
