@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * ETH (saldo e valor) é texto do começo ao fim (CLAUDE.md e desenho, seção 8).
- * Esta varredura falha se o código que trata o saldo, o valor do envio ou o
- * valor da transação acompanhada converter o valor em número. O decimalToText
- * do client.ts fica de fora de propósito: ele só escreve como texto o número
- * que o navegador sem context.source já entregou.
+ * Esta varredura falha se o código que trata o saldo, o valor do envio, o
+ * valor da transação acompanhada ou o da atividade converter o valor em
+ * número. O decimalToText do client.ts fica de fora de propósito: ele só
+ * escreve como texto o número que o navegador sem context.source já entregou.
  */
 const SOURCES = import.meta.glob<string>(
   [
@@ -15,6 +15,7 @@ const SOURCES = import.meta.glob<string>(
     './validate.ts',
     '../hooks/useBalance.ts',
     '../hooks/useTransactionPolling.ts',
+    '../hooks/useActivity.ts',
     '../components/wallet/*.tsx',
     '!../components/wallet/*.test.tsx',
     '../components/tx/*.tsx',
@@ -36,6 +37,7 @@ describe('ETH sem Number', () => {
       '../components/tx/StatusTimeline.tsx',
       '../components/wallet/BalanceCard.tsx',
       '../components/wallet/ReceivePanel.tsx',
+      '../hooks/useActivity.ts',
       '../hooks/useBalance.ts',
       '../hooks/useTransactionPolling.ts',
       '../pages/SendPage.tsx',
