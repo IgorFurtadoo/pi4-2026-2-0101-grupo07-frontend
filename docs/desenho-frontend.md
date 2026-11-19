@@ -1,6 +1,6 @@
 # Desenho do Frontend (Container 1)
 
-Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3). Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
+Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3) e em 19/11/2026 depois do F6. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
 
 Legenda:
 - **[Contrato]**: já definido na Especificação ou no Core API. Só muda emendando a ficha.
@@ -156,6 +156,7 @@ Rota protegida sem token válido leva a `/entrar`. Rota pública com sessão vá
 - **Atenção ao limite global:** o Core API aceita 10 requisições de mercado por 60 s, **somando todos os usuários**. Se cada visita à carteira buscar o mercado, entrar e sair da tela esgota o limite. [Sugestão] guardar o último resultado **em memória por 60 s** e só buscar de novo depois disso ou por clique em atualizar. É simples (uma variável de módulo com horário) e evita que a própria demonstração gere `429`.
 - O External Data Service existe desde 18/11/2026 (E1 a E3) e o `GET /market/ethereum` do Core API já devolve preço e série reais (provado com a CoinGecko real). O `502` segue tratado: o painel mostra "indisponível" e o resto da carteira não depende dele.
 - Variação de 7 dias: calculada no cliente (último ponto contra o primeiro da série). Preço em dólar formatado em `pt-BR` (`US$ 3.200,45`).
+- **Detalhes feitos no F6** [Decidido, 19/11/2026]: o cache é um estado de módulo com o último resultado bom (60 s), o fim do `429` e uma única requisição em voo para o app todo; o `502` não fica guardado (voltar à tela busca de novo), e o `429` sim (voltar segue a mesma contagem, sem nova chamada). Sem `Retry-After` legível, a espera é de 60 s. A primeira busca sai num `setTimeout(0)`, para a montagem dupla do `StrictMode` não gastar vaga com uma requisição cancelada. O corpo é conferido inteiro (`assetId`, `USD`, decimais planos, série de 1 a 1.000 pontos com instantes ISO UTC em ordem não decrescente); fora disso, erro, sem série parcial. Os instantes da série nunca são comparados com o relógio local (o último ponto é o da consulta e pode estar à frente dele); "Atualizado às" usa a hora local da resposta. A contagem do `429` fica fora do alerta, para o leitor de tela não a repetir a cada segundo. O corpo real foi aceito pela validação (169 pontos, preços com até 16 algarismos, texto exato).
 - Link para o explorador (`https://sepolia.etherscan.io/tx/<hash>`) só com o hash validado (`^0x[0-9a-fA-F]{64}$`), em nova aba com `rel="noopener noreferrer"`.
 
 ### 6.3 "Receber" [Sugestão, opcional]
@@ -293,10 +294,12 @@ src/
     market/    MarketPanel, PriceChart (SVG)
     tx/        StatusTimeline, SendReview
   hooks/       useBalance, useMarket (com cache de 60 s), useTransactionPolling
-  lib/         format.ts (ETH por texto, USD, datas), validate.ts, address.ts
+  lib/         format.ts (ETH por texto), market.ts (USD e variação), instant.ts (datas), validate.ts
   styles/      index.css (Tailwind e os tokens da seção 4)
   assets/brand logos, símbolo, mascote e favicon copiados de lemma-artes
 ```
+
+[Feito no F6, 19/11/2026] USD e variação ficam em `lib/market.ts`, não em `format.ts`: o `format.ts` passa pela varredura "ETH sem Number" e o mercado usa `Number` de propósito (só para exibir, seção 8).
 
 Regras: página não chama `fetch`; só chama `api/`. `api/` não conhece React. A lógica de polling mora num hook testável com relógio falso. Os SVG da marca entram como arquivos, sem alteração.
 
@@ -321,7 +324,7 @@ Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<
 | F3 | Carteira: cartão de saldo, copiar endereço, "Receber", esqueletos | Saldo real do Core API em texto, sem perda de dígitos; 502 do saldo mostra estado de erro com nova tentativa | H04.3 (#875). **Feito e enviado em 17/11/2026** (6 commits, origin/main em `2bc19b2`; 228 testes; saldo como texto exato, exibido cortado em 6 casas e nunca arredondado para cima, com a linha "Valor exato" quando há dígitos escondidos; validado no navegador com saldo real recebido pelo faucet) |
 | F4 | Envio: formulário, revisão, trava de clique duplo, erros por `code` | Um envio real devolve `202` e abre `/transacoes/{taskId}`; dois cliques seguidos fazem **uma** chamada; endereço e valor inválidos mostram a mensagem certa | H05.3 (#878). **Feito e enviado em 17/11/2026** (4 commits, origin/main em `d0c762d`; 326 testes; envio real com saldo feito pelo navegador e conferido no Etherscan; o agente provou 202, `ADDRESS_INVALID` e `AMOUNT_INVALID` por `curl`) |
 | F5 | Acompanhamento: polling, linha do tempo, hash, motivos de falha, aviso de demora | `PENDING` vira `CONFIRMED` sem recarregar; `FAILED` mostra o motivo; sair da tela cancela o polling; saldo atualiza ao voltar | H08.3 (#887). **Feito e enviado em 17/11/2026** (5 commits, origin/main em `c6fdcd3`; 438 testes; polling com recuo, pausa na aba escondida e aviso de demora; hash provisório sem link enquanto `PENDING`, link do Etherscan só em estado final; validado com envios reais pelo Core API) |
-| F6 | Mercado: painel, gráfico SVG, cache de 60 s, `429` com contagem, `502` | Contra o External Data Service real ou um falso: preço e gráfico; `429` mostra a contagem e libera o botão ao fim; `502` mostra "indisponível" sem afetar o saldo | H06.3 (#881) |
+| F6 | Mercado: painel, gráfico SVG, cache de 60 s, `429` com contagem, `502` | Contra o External Data Service real ou um falso: preço e gráfico; `429` mostra a contagem e libera o botão ao fim; `502` mostra "indisponível" sem afetar o saldo | H06.3 (#881). **Feito em 19/11/2026** (7 commits; 530 testes; preço e série reais conferidos por `curl` pelo Core API e o corpo real aceito pela validação; `429` e `502` provados por testes e por um servidor falso temporário fora do repositório) |
 | F7 | Acabamento: acessibilidade, movimento, 404, README do Frontend, roteiro manual ponta a ponta registrado | Roteiro 4 da seção 13.1 passa; contrastes e 360 px conferidos | H04.4 (#1317, parte Frontend) e cards de teste |
 | F8 (se o histórico entrar: opção C ou D da seção 7) | Lista de atividade na carteira, depois do passo C10 no Core API (e, na D, da operação de histórico no External Data Service) | Lista das últimas transações do usuário, cada uma com link ao explorador (D) ou ao acompanhamento (C) | novo (a criar) |
 
