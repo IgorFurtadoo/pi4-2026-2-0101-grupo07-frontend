@@ -76,6 +76,13 @@ describe('Alert', () => {
 })
 
 describe('CopyButton', () => {
+  it('srLabel completa o nome acessível sem mudar o texto visível', () => {
+    render(<CopyButton value="0xabc" label="Copiar" srLabel="endereço 0xab…bc" />)
+
+    const button = screen.getByRole('button', { name: 'Copiar endereço 0xab…bc' })
+    expect(button.querySelector('.sr-only')).toHaveTextContent('endereço 0xab…bc')
+  })
+
   it('copia o valor, avisa "Copiado" e anuncia ao leitor de tela', async () => {
     vi.useFakeTimers()
     const writeText = vi.fn().mockResolvedValue(undefined)

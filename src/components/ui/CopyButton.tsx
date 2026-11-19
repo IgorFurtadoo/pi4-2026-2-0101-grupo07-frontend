@@ -13,6 +13,11 @@ type CopyButtonProps = {
   label: string
   /** O que o leitor de tela anuncia ao copiar, por exemplo "Endereço copiado". */
   copiedMessage?: string
+  /**
+   * Complemento do rótulo só para leitor de tela, quando há vários botões
+   * iguais na tela (por exemplo "endereço 0x6bdB…58E6" depois de "Copiar").
+   */
+  srLabel?: string
   className?: string
 }
 
@@ -20,7 +25,13 @@ type CopyButtonProps = {
  * Copia um texto com navigator.clipboard. O resultado aparece no próprio botão
  * (ícone e texto) e é anunciado numa região aria-live que fica sempre montada.
  */
-export function CopyButton({ value, label, copiedMessage = 'Copiado', className }: CopyButtonProps) {
+export function CopyButton({
+  value,
+  label,
+  copiedMessage = 'Copiado',
+  srLabel,
+  className,
+}: CopyButtonProps) {
   const [state, setState] = useState<CopyState>('idle')
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -58,6 +69,12 @@ export function CopyButton({ value, label, copiedMessage = 'Copiado', className 
         )}
         <span>
           {state === 'copied' ? 'Copiado' : state === 'failed' ? 'Não foi possível copiar' : label}
+          {state === 'idle' && srLabel && (
+            <>
+              {' '}
+              <span className="sr-only">{srLabel}</span>
+            </>
+          )}
         </span>
       </button>
       <span aria-live="polite" className="sr-only">

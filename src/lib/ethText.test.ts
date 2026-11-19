@@ -18,6 +18,8 @@ const SOURCES = import.meta.glob<string>(
     '../hooks/useActivity.ts',
     '../components/wallet/*.tsx',
     '!../components/wallet/*.test.tsx',
+    '../components/activity/*.tsx',
+    '!../components/activity/*.test.tsx',
     '../components/tx/*.tsx',
     '!../components/tx/*.test.tsx',
     '../pages/WalletPage.tsx',
@@ -34,6 +36,7 @@ describe('ETH sem Number', () => {
     expect(Object.keys(SOURCES).sort()).toEqual([
       '../api/transactions.ts',
       '../api/wallet.ts',
+      '../components/activity/ActivityList.tsx',
       '../components/tx/StatusTimeline.tsx',
       '../components/wallet/BalanceCard.tsx',
       '../components/wallet/ReceivePanel.tsx',
