@@ -15,11 +15,15 @@ export function pendingResponse(signal?: AbortSignal | null): Promise<Response> 
  * só com microtarefas, sem o corpo em stream do Node, então funciona com
  * relógio falso.
  */
-export function fakeResponse(status: number, body: string): Response {
+export function fakeResponse(
+  status: number,
+  body: string,
+  headers: Record<string, string> = {},
+): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
-    headers: new Headers(),
+    headers: new Headers(headers),
     text: () => Promise.resolve(body),
   } as unknown as Response
 }
