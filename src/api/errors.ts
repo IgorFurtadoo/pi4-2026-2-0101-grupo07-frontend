@@ -1,6 +1,6 @@
 /**
  * Códigos de erro que o Frontend conhece (desenho, seção 8): os do Core API
- * (fichas CT1, CT3, CT6, CT9, CT13 e CT17) mais o NETWORK_ERROR do próprio
+ * (fichas CT1, CT3, CT6, CT9, CT13, CT17 e CT26) mais o NETWORK_ERROR do próprio
  * cliente, para falha de rede ou tempo esgotado.
  */
 export const ERROR_CODES = [
@@ -18,6 +18,7 @@ export const ERROR_CODES = [
   'ASSET_NOT_FOUND',
   'RATE_LIMIT_EXCEEDED',
   'MARKET_DATA_UNAVAILABLE',
+  'HISTORY_UNAVAILABLE',
   'INTERNAL_ERROR',
   'NETWORK_ERROR',
 ] as const
@@ -41,6 +42,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   ASSET_NOT_FOUND: 'Criptoativo não encontrado.',
   RATE_LIMIT_EXCEEDED: 'Muitas requisições. Tente novamente em instantes.',
   MARKET_DATA_UNAVAILABLE: 'Dados de mercado indisponíveis no momento.',
+  HISTORY_UNAVAILABLE: 'Histórico indisponível no momento.',
   INTERNAL_ERROR: 'Ocorreu um erro inesperado. Tente novamente.',
   NETWORK_ERROR: 'Não foi possível falar com o servidor. Verifique a conexão e tente novamente.',
 }

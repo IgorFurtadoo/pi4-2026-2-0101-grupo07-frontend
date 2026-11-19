@@ -73,6 +73,13 @@ describe('formatEth com todas as casas (valor exato)', () => {
       '123.456.789,123456789012345678',
     )
   })
+
+  it('tira os zeros à direita, sem cortar casas significativas (valor da atividade)', () => {
+    expect(formatEth('0.000500000000000000', ETH_DECIMALS)).toBe('0,0005')
+    expect(formatEth('1.000000000000000000', ETH_DECIMALS)).toBe('1')
+    expect(formatEth('0.000000000000000001', ETH_DECIMALS)).toBe('0,000000000000000001')
+    expect(formatEth('0.100000000000000010', ETH_DECIMALS)).toBe('0,10000000000000001')
+  })
 })
 
 describe('isZeroEth', () => {

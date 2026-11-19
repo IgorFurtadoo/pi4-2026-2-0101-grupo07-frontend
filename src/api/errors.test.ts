@@ -19,6 +19,7 @@ describe('mapa de erros', () => {
         'ASSET_NOT_FOUND',
         'RATE_LIMIT_EXCEEDED',
         'MARKET_DATA_UNAVAILABLE',
+        'HISTORY_UNAVAILABLE',
         'INTERNAL_ERROR',
         'NETWORK_ERROR',
       ].sort(),
@@ -26,6 +27,12 @@ describe('mapa de erros', () => {
     for (const code of ERROR_CODES) {
       expect(ERROR_MESSAGES[code].length).toBeGreaterThan(0)
     }
+  })
+
+  it('HISTORY_UNAVAILABLE (CT26) tem texto próprio', () => {
+    expect(messageFor('HISTORY_UNAVAILABLE', 'Não foi possível obter o histórico agora.')).toBe(
+      'Histórico indisponível no momento.',
+    )
   })
 
   it('usa o texto do Frontend para código conhecido, mesmo com mensagem do servidor', () => {
