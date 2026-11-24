@@ -429,7 +429,7 @@ Cada backend tem testes JUnit sem rede: regras de negócio com dependências fal
 
 | Módulo | Testes no código-fonte (23/11/2026) | Última execução registrada | Comando |
 |---|---|---|---|
-| Core API | 436 métodos `@Test`/`@ParameterizedTest` em 26 classes | ⟨preencher após `mvn clean test`⟩ | `mvn clean test` |
+| Core API | 436 métodos `@Test`/`@ParameterizedTest` em 26 classes | 23/11/2026: 436 testes, 0 falhas, 1 erro (tempo esgotado em `HttpBlockchainClientTest.successIsNotLogged`, com os três backends compilando ao mesmo tempo; defeito D-06) | `mvn clean test` |
 | Blockchain Service | 142 métodos em 13 classes | 23/11/2026: 152 testes executados, 0 falhas | `mvn clean test` |
 | External Data Service | 87 métodos em 10 classes | 23/11/2026: 87 testes, 0 falhas | `mvn clean test` |
 | Frontend | 375 casos `it`/`test` em 33 arquivos (casos com `.each` se multiplicam na execução) | 19/11/2026: 623 testes executados, 0 falhas | `npm test` |
@@ -468,10 +468,10 @@ Situação: **Passou** (execução registrada, com a data), **Passou (auto)** (c
 | TE-21 | E8 | Envio real com Core API, Blockchain Service e bancos em contêineres separados | Transação percorre Core API → Blockchain Service → RPC e volta ao usuário | Tx `0x846b…65c8`, bloco 12144806, `CONFIRMED` pelo webhook | Passou (16/11) † |
 | TE-22 | E9, RNF-05 | Reiniciar o `blockchain-service` com uma task pendente (antes e depois do envio, e com `kill`) | Task segue consultável e termina `CONFIRMED`, uma transação por rodada | Três rodadas `CONFIRMED` (blocos 12142400, 12142402, 12142405); 7 testes `TaskWorkerRestartTest` | Passou (15/11) |
 | TE-23 | E10, CT26 | Abrir a carteira de um endereço com transações | Lista com até 20 transações, direção e link | Lista com a recebida (+0,835) e a enviada (−0,002), confirmadas, com link (8.12); em 19/11, 13 transações e `502 HISTORY_UNAVAILABLE` com o serviço fora | Passou (23/11) |
-| TE-24 | RNF-01 | Seguir o capítulo 9 numa máquina limpa (clonar os quatro repositórios, criar a `lemma-dev`, subir os quatro composes) | Seis contêineres em execução; app em `http://localhost:5173` | ⟨preencher⟩ | Não executado † |
+| TE-24 | RNF-01 | Seguir o capítulo 9 numa máquina limpa (clonar os quatro repositórios, criar a `lemma-dev`, subir os quatro composes) | Seis contêineres em execução; app em `http://localhost:5173` | — | Não executado † |
 | TE-25 | RNF-08 | Cifrar e decifrar; copiar a chave cifrada para outra linha | Decifra só na própria linha; nada da chave em log | `KeyCipherTest` (8 testes) | Passou (auto) |
 | TE-26 | RNF-09, RNF-11 | Subir com segredos de exemplo; subir com `CHAIN_ID` diferente | Serviço sai com código 1 e mensagem clara | Testes `AppConfigTest` dos três backends | Passou (auto) |
-| TE-27 | RNF-10 | `docker ps` com o sistema no ar | Bancos sem porta; 5173, 8080, 8081 e 8082 só em `127.0.0.1` | ⟨preencher⟩ | Não executado † |
+| TE-27 | RNF-10 | `docker ps` com o sistema no ar | Bancos sem porta; 5173, 8080, 8081 e 8082 só em `127.0.0.1` | — | Não executado † |
 | TE-28 | RNF-02 | Abrir a carteira com o Core API parado | Cada painel mostra erro com botão de tentar de novo, sem tela branca | "Não foi possível falar com o servidor" nos três painéis (8.13) | Passou (23/11) |
 
 As transações citadas podem ser conferidas em `https://sepolia.etherscan.io/tx/<hash>`.
@@ -486,15 +486,16 @@ As transações citadas podem ser conferidas em `https://sepolia.etherscan.io/tx
 
 ### 7.5 Defeitos conhecidos
 
-Defeitos registrados no quadro do OpenProject com título iniciado por `Bug:`. ⟨Completar com o número e o link de cada card.⟩
+Nenhum defeito foi registrado como card no quadro do OpenProject. Os itens abaixo foram encontrados durante o desenvolvimento e os testes e continuam abertos na entrega.
 
-| ID | Defeito | Severidade | Card |
+| ID | Defeito | Severidade | Onde apareceu |
 |---|---|---|---|
-| D-01 | O número CT24 foi usado em dois contratos diferentes (`rpcGetTransactionByHash` e `fetchAddressTransactions`). | Baixa | ⟨link⟩ |
-| D-02 | Uma task pode ficar `PENDING` para sempre se o nó responder "nonce too low" e não conhecer o hash; não há tempo limite de task. O Frontend mostra o aviso de demora após 10 minutos. | Média | ⟨link⟩ |
-| D-03 | Se o envio estourar o tempo entre Core API e Blockchain Service, não há como saber se foi aceito; repetir pode gerar duas transações (sem idempotência no CT9/CT10). A tela avisa e não reenvia sozinha. | Média | ⟨link⟩ |
-| D-04 | Não há limite de tentativas de login. | Média | ⟨link⟩ |
-| D-05 | Um envio aceito com a aba fechada antes da resposta só pode ser reencontrado depois de minerado (pelo histórico, E10). | Baixa | ⟨link⟩ |
+| D-01 | O número CT24 foi usado em dois contratos diferentes (`rpcGetTransactionByHash` e `fetchAddressTransactions`). | Baixa | Revisão dos contratos para este documento |
+| D-02 | Uma task pode ficar `PENDING` para sempre se o nó responder "nonce too low" e não conhecer o hash; não há tempo limite de task. O Frontend mostra o aviso de demora após 10 minutos. | Média | Desenho do Blockchain Service (Fase A do worker) |
+| D-03 | Se o envio estourar o tempo entre Core API e Blockchain Service, não há como saber se foi aceito; repetir pode gerar duas transações (sem idempotência no CT9/CT10). A tela avisa e não reenvia sozinha. | Média | Desenho do Core API e do Frontend |
+| D-04 | Não há limite de tentativas de login. | Média | ADR 0004 |
+| D-05 | Um envio aceito com a aba fechada antes da resposta só pode ser reencontrado depois de minerado (pelo histórico, E10). | Baixa | Desenho do Frontend |
+| D-06 | O teste `HttpBlockchainClientTest.successIsNotLogged` usa tempo limite de 1 s contra um servidor HTTP local e falha com a máquina sobrecarregada (1,1 s medido). Rodando sozinho, não ocorre. A correção é aumentar o limite nesse teste. | Baixa | `mvn clean test` de 23/11/2026 (7.2) |
 
 Escala usada: **Crítica** (impede o uso), **Alta** (um entregável de prioridade Alta não funciona como no "feito quando"), **Média** (erro com forma de contornar), **Baixa** (problema visual, de texto ou de documentação).
 
@@ -633,7 +634,7 @@ No PDF, a parte comum dos quatro READMEs (nome, integrantes, repositórios e "Co
 
 **O que fica para uma próxima versão.**
 
-- Tempo limite de task, retentativa do webhook e idempotência do envio (D-02 e D-03).
+- Tempo limite de task, retentativa do webhook e idempotência do envio (D-02 e D-03), e o ajuste do teste instável (D-06).
 - Limite de tentativas de login (D-04) e recuperação de senha.
 - CI com GitHub Actions e análise no SonarQube.
 - Estimativa de gás (`eth_estimateGas`) no lugar do limite fixo de 500.000.
