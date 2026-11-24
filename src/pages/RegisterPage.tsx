@@ -27,11 +27,11 @@ const PASSWORD_MESSAGES: Record<PasswordProblem, string> = {
   empty: 'Informe a senha.',
   too_short: 'A senha precisa ter no mínimo 8 caracteres.',
   too_long:
-    'A senha passou do limite de 72 bytes. Letras com acento ocupam 2 bytes e emojis, 4: use uma senha mais curta ou com menos acentos.',
+    'A senha passou do limite de caracteres: use uma senha mais curta ou com menos acentos.',
 }
 
 const PASSWORD_HINT =
-  'Mínimo de 8 caracteres e máximo de 72 bytes. Letras com acento ocupam 2 bytes e emojis, 4.'
+  'Mínimo de 8 caracteres.'
 
 type FieldErrors = { email?: string; password?: string }
 type FormError = { code: string; text: string }
