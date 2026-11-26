@@ -30,7 +30,7 @@ import { readPending, removePending } from '../lib/pendingTransactions'
  */
 const WALLET_GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4'
 const BLOCK = {
-  balance: 'min-w-0 sm:col-start-1 sm:row-start-1 lg:col-span-5 lg:col-start-1 lg:row-start-1',
+  balance: 'flex min-w-0 flex-col sm:col-start-1 sm:row-start-1 lg:col-span-5 lg:col-start-1 lg:row-start-1',
   pending: 'sm:col-span-2 sm:row-start-2 lg:col-span-5 lg:col-start-1 lg:row-start-2',
   market: 'sm:col-start-2 sm:row-start-1 lg:col-span-7 lg:col-start-6 lg:row-start-1',
   activityBesidePending: 'sm:col-span-2 lg:col-span-7 lg:col-start-6 lg:row-start-2',
@@ -40,7 +40,7 @@ const BLOCK = {
 /** Casca azul do cartão enquanto a primeira leitura não chega. */
 function BalanceCardSkeleton() {
   return (
-    <div className="rounded-2xl bg-primary p-6 text-on-primary sm:p-8">
+    <div className="flex-1 rounded-2xl bg-primary p-6 text-on-primary sm:p-8">
       <p className="sr-only">Carregando saldo…</p>
       <Skeleton className="h-6 w-24 rounded-md" />
       <Skeleton className="mt-6 h-11 w-52 max-w-full rounded-md" />
@@ -142,6 +142,7 @@ export function WalletPage() {
           {balance ? (
             <>
               <BalanceCard
+                className="flex-1"
                 balance={balance}
                 receiveOpen={receiveOpen}
                 onToggleReceive={() => setReceiveOpen((open) => !open)}

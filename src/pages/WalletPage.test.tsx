@@ -741,6 +741,34 @@ describe('WalletPage: grade de blocos', () => {
     expect(screen.getByRole('region', { name: 'Atividade' })).toHaveClass('lg:col-span-12')
   })
 
+  it('alvos de toque de 44 px (min-h-11) e o cartão de saldo ocupando a altura do bloco', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        if (url === 'http://localhost:8080/wallet/balance') return reply(balanceResponse('1'), init)
+        if (url === ACTIVITY_URL) {
+          return reply(new Response(activityBody([activityItem()]), { status: 200 }), init)
+        }
+        return pendingResponse(init.signal)
+      }),
+    )
+    openWalletAs()
+
+    const card = await balanceCard()
+    expect(card).toHaveClass('flex', 'flex-col', 'flex-1')
+    expect(card.closest('[data-block="saldo"]')).toHaveClass('flex', 'flex-col')
+    const activity = screen.getByRole('region', { name: 'Atividade' })
+    const targets = [
+      screen.getByRole('link', { name: 'Enviar' }),
+      screen.getByRole('button', { name: 'Receber' }),
+      screen.getByRole('button', { name: 'Copiar endereço' }),
+      within(screen.getByRole('banner')).getAllByRole('link')[0],
+      screen.getByRole('button', { name: 'Sair' }),
+      await within(activity).findByRole('link', { name: /Ver no Etherscan/ }),
+    ]
+    targets.forEach((target) => expect(target).toHaveClass('min-h-11'))
+  })
+
   it('a ordem dos títulos segue h1 Carteira e depois os h2 dos blocos', async () => {
     addPending('42', pendingRecord('t1'))
     stubGrid()

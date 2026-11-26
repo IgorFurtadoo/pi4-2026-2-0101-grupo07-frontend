@@ -32,7 +32,7 @@ export function AppLayout() {
     <div className="flex min-h-dvh flex-col">
       <header className="border-b border-divider bg-surface">
         <div className={`${WIDE} ${GUTTER} flex flex-wrap items-center justify-between gap-2 py-3`}>
-          <Link to="/" className="rounded-sm">
+          <Link to="/" className="inline-flex min-h-11 items-center rounded-sm">
             <Logo background="light" />
           </Link>
           <nav aria-label="Conta">

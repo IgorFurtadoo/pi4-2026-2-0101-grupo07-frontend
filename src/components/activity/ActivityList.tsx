@@ -103,7 +103,7 @@ function ActivityItem({ transaction }: { transaction: WalletTransaction }) {
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 font-medium text-primary underline hover:text-primary-hover"
+            className="inline-flex min-h-11 items-center gap-1.5 font-medium text-primary underline hover:text-primary-hover"
           >
             Ver no Etherscan
             <ExternalLink aria-hidden="true" className="size-4 shrink-0" />{' '}

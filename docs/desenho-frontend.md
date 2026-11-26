@@ -1,6 +1,6 @@
 # Desenho do Frontend (Container 1)
 
-Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3), em 19/11/2026 depois do F6 e em 26/11/2026 com os envios "Em andamento" (seção 7.2). Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
+Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3), em 19/11/2026 depois do F6 e em 26/11/2026 com os envios "Em andamento" (seção 7.2) e a carteira em blocos (seção 6.2). Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
 
 Legenda:
 - **[Contrato]**: já definido na Especificação ou no Core API. Só muda emendando a ficha.
@@ -126,7 +126,7 @@ A fonte do produto é decisão que o guia deixou aberta (seção 7, "uso da Jost
 
 Onde o mascote **não** aparece: erros, avisos, 404, carregamento, confirmação de sucesso (regra da marca, seção 5.5). Esses estados usam ícone e texto.
 
-Responsivo: parte de 360 px de largura; conteúdo limitado a uma largura confortável no desktop; foco visível em tudo; rótulos em todos os campos; mudança de estado da transação anunciada por região `aria-live`.
+Responsivo: parte de 360 px de largura; as telas de formulário e de acompanhamento ficam numa coluna de largura confortável, e a carteira ocupa a janela em blocos (seção 6.2, [Mudou em 26/11/2026]); foco visível em tudo; rótulos em todos os campos; mudança de estado da transação anunciada por região `aria-live`.
 
 ## 6. Telas e rotas
 
@@ -150,6 +150,16 @@ Rota protegida sem token válido leva a `/entrar`. Rota pública com sessão vá
 - Botão desabilitado enquanto a requisição está em andamento.
 
 ### 6.2 Carteira (E3) e mercado (E6, E7)
+
+- **Disposição em blocos** [Decidido e feito em 26/11/2026, H04.3]. A carteira é uma grade de blocos ("bento"), sem coluna central estreita: Saldo (cartão azul com endereço, copiar, Enviar e Receber, e o painel "Receber" logo abaixo), Em andamento (só com itens, seção 7.2), Mercado (preço e gráfico) e Atividade. O título "Carteira" e "Atualizar saldo" ficam numa faixa acima da grade, que não é um bloco. Os blocos se esticam até a altura da linha; no Saldo, Enviar e Receber descem para o rodapé do cartão.
+
+  | Largura | Grade | Disposição |
+  |---|---|---|
+  | < 640 px (até 360) | 1 coluna | Saldo, Em andamento, Mercado, Atividade |
+  | 640 a 1023 px | 2 colunas | Saldo e Mercado lado a lado; Em andamento e Atividade em largura total, uma linha cada |
+  | ≥ 1024 px | 12 colunas, 2 linhas | Saldo (5) e Mercado (7) em cima; Em andamento (5) e Atividade (7) embaixo. Sem Em andamento, a Atividade ocupa as 12 colunas |
+
+  A ordem no DOM é a do celular, e ela é também a ordem de leitura e de foco em todos os tamanhos: no desktop, a coluna da esquerda (Saldo, Em andamento) vem antes da da direita (Mercado, Atividade). A posição é dada por `col-start` e `row-start` nos breakpoints, sem `order-*`. Margem externa: 12 px no celular, 16 no tablet, 24 no desktop. Espaço entre blocos: 12 px, e 16 no desktop. O `main` da carteira e o cabeçalho ocupam a janela até **1600 px**, centralizados, para não esticar em tela ultrawide. As demais telas (envio, acompanhamento, 404) seguem na coluna de `max-w-5xl` com a sua largura própria, e cadastro e login não mudam. Alvos de toque com pelo menos 44 px (`min-h-11`), inclusive o logo do cabeçalho e o "Ver no Etherscan". O gráfico acompanha a largura do bloco pelo `viewBox`. Títulos: `h1` Carteira e um `h2` por bloco, na ordem do DOM. Só tokens da seção 4, Jost, sem sombra.
 
 - Saldo: `GET /wallet/balance` ao abrir, botão de atualizar e nova leitura depois de uma transação chegar ao estado final. Sem polling do saldo.
 - Mercado: `GET /market/ethereum` (o `assetId` fixo é `ethereum`, como no E6 passo 1). Estados: carregando (esqueleto), ok, `429` (contagem regressiva pelo `Retry-After`, e o botão de atualizar desabilitado até acabar), `502` ("mercado indisponível" com botão de tentar de novo), qualquer outro erro.
@@ -347,6 +357,7 @@ Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<
 | F7 | Acabamento: acessibilidade, movimento, 404, README do Frontend, roteiro manual ponta a ponta registrado | Roteiro 4 da seção 13.1 passa; contrastes e 360 px conferidos | H04.4 (#1317, parte Frontend) e cards de teste |
 | F8 (opção D da seção 7) | Lista de atividade na carteira, depois do passo C10 no Core API e da operação de histórico no External Data Service | Lista das últimas transações do usuário, cada uma com link ao explorador | H08.4 (#1406). **Feito em 19/11/2026** (5 commits; 623 testes; provado de verdade: um usuário novo recebeu `200` com `transactions: []` do `GET /wallet/transactions` real, com `Access-Control-Allow-Origin: http://localhost:5173`, e esse corpo foi aceito pela validação; o container serve `/carteira` com o bundle novo. Só em teste, com o formato exato da CT26: lista com itens, `SENT`, `RECEIVED`, `SELF`, `FAILED`, outra ponta nula, valor de 1 wei, `502` e `500`. A lista com dados reais fica para a conferência no navegador com uma conta que já tem transações) |
 | F8b (opção B da seção 7, complemento) | Envios em andamento na carteira: lista local por usuário e estado pelo CT13 (seção 7.2) | Envio aceito aparece em "Em andamento" mesmo depois de sair do acompanhamento; `PENDING` vira `CONFIRMED` sem recarregar e relê saldo e atividade; `FAILED` mostra o motivo e sai por "Dispensar"; o item some quando o hash entra no histórico | H08.3 (#887). **Feito em 26/11/2026** (3 commits, mais um do H02.3 que alinhou o teste da senha longa à mensagem de 23/11; 675 testes; sem rota nova no Core API e sem CT novo. Só em teste: `FAILED` com motivo, `404`, `401`, hash já no histórico, limite de 20, 24 h e armazenamento que lança. A validação com um envio real fica para a conferência no navegador) |
+| F3b (complemento do F3) | Carteira em blocos: grade responsiva de 1, 2 e 12 colunas, cabeçalho e carteira na largura da janela (seção 6.2) | Sem scroll horizontal em 360 px; Saldo, Em andamento, Mercado e Atividade nas posições da tabela da seção 6.2 em 360, 768 e 1440 px; alvos de 44 px | H04.3 (#875). **Feito em 26/11/2026** (2 commits, mais um do H08.3 com a nota da Atividade). Só em teste: classes da grade, ordem dos blocos e dos títulos, layout por rota e alvos de toque. A conferência visual em 360, 768 e 1440 px é do Igor no navegador |
 
 Dependências: F1 antes de todos; F2 antes de F3 a F6; F4 antes de F5; F6 não depende de F4 nem de F5 e pode ser feito antes se convier; F8 depende do C10 e da operação de histórico no External Data Service. Ordem a partir do F5 [Decidido, 18/11/2026]: External Data Service (mercado primeiro, histórico depois), F6, C10 no Core API, F8, F7 por último, porque o F7 registra o roteiro ponta a ponta e deve cobrir tudo o que entrou.
 

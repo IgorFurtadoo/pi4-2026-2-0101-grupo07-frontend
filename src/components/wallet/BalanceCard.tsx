@@ -15,6 +15,8 @@ type BalanceCardProps = {
   onToggleReceive: () => void
   /** id do painel "Receber", para o aria-controls. */
   receivePanelId: string
+  /** Na grade da carteira, "flex-1" faz o cartão ocupar a altura do bloco. */
+  className?: string
 }
 
 /**
@@ -23,12 +25,14 @@ type BalanceCardProps = {
  * exibido com 6 casas (truncado pelo formatEth, nunca arredondado para cima);
  * quando isso esconde dígitos e o texto é o exato do JSON, uma linha mostra o
  * valor exato. O coral é só um fio decorativo: nenhuma informação depende dele.
+ * Quando o cartão estica na grade, Enviar e Receber ficam no rodapé.
  */
 export function BalanceCard({
   balance,
   receiveOpen,
   onToggleReceive,
   receivePanelId,
+  className,
 }: BalanceCardProps) {
   const { balanceEth, ethereumAddress, exact } = balance
   const shown = formatEth(balanceEth)
@@ -37,7 +41,7 @@ export function BalanceCard({
   return (
     <section
       aria-labelledby="titulo-saldo"
-      className="rounded-2xl bg-primary p-6 text-on-primary sm:p-8"
+      className={`flex flex-col rounded-2xl bg-primary p-6 text-on-primary sm:p-8 ${className ?? ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-saldo" className="text-lg">
@@ -74,7 +78,7 @@ export function BalanceCard({
         />
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-auto flex gap-3 pt-6">
         <Link to="/enviar" className={ACTION_ON_BLUE}>
           <ArrowUpRight aria-hidden="true" className="size-5 shrink-0" />
           Enviar
