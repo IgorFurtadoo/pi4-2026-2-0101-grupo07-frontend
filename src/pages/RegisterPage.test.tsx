@@ -71,7 +71,7 @@ describe('RegisterPage: validação por campo', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('senha acima de 72 bytes explica que acento e emoji ocupam mais de 1 byte', async () => {
+  it('senha acima de 72 bytes mostra a mensagem de limite de caracteres', async () => {
     const fetchMock = stubFetch(jsonResponse(201, {}))
     await openRegister()
 
@@ -79,7 +79,7 @@ describe('RegisterPage: validação por campo', () => {
     submit()
 
     const password = screen.getByLabelText('Senha')
-    expect(password).toHaveAccessibleDescription(expect.stringContaining('passou do limite de 72 bytes'))
+    expect(password).toHaveAccessibleDescription(expect.stringContaining('A senha passou do limite de caracteres'))
     expect(password).toHaveFocus()
     expect(fetchMock).not.toHaveBeenCalled()
   })
