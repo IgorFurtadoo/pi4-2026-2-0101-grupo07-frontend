@@ -1,6 +1,6 @@
 # Desenho do Frontend (Container 1)
 
-Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3) e em 19/11/2026 depois do F6. Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
+Escrito em 16/11/2026, atualizado em 18/11/2026 depois do F5 e do External Data Service (E1 a E3), em 19/11/2026 depois do F6 e em 26/11/2026 com os envios "Em andamento" (seção 7.2). Responsável do módulo: Igor, que também faz todos os commits do repositório `-frontend`. Fontes: `especificacao-entrega2.md` (fluxos E1 a E7 e fichas CT1, CT3, CT6, CT9, CT13 e CT17), `desenho-core-api.md` e as pendências do Core API (comportamento real depois do C9), `direcao-visual.md` (guia de identidade de 08/10/2026) e o pacote `lemma-artes`. Em divergência valem `docs/contratos/` do Core API e este desenho; a Especificação entregue não é emendada.
 
 Legenda:
 - **[Contrato]**: já definido na Especificação ou no Core API. Só muda emendando a ficha.
@@ -135,7 +135,7 @@ Responsivo: parte de 360 px de largura; conteúdo limitado a uma largura confort
 | `/cadastro` | Cadastro (e confirmação com o endereço criado) | pública | CT1 |
 | `/entrar` | Login | pública | CT3 |
 | `/` | Redireciona para `/carteira` (ou `/entrar`) | | |
-| `/carteira` | Saldo, ações, painel de mercado, atividade | token | CT6, CT17, CT26 |
+| `/carteira` | Saldo, ações, painel de mercado, envios em andamento, atividade | token | CT6, CT13, CT17, CT26 |
 | `/enviar` | Formulário de envio e revisão | token | CT9 |
 | `/transacoes/:taskId` | Acompanhamento | token | CT13 |
 | `*` | Não encontrada (só texto e logo) | pública | |
@@ -157,6 +157,7 @@ Rota protegida sem token válido leva a `/entrar`. Rota pública com sessão vá
 - O External Data Service existe desde 18/11/2026 (E1 a E3) e o `GET /market/ethereum` do Core API já devolve preço e série reais (provado com a CoinGecko real). O `502` segue tratado: o painel mostra "indisponível" e o resto da carteira não depende dele.
 - Variação de 7 dias: calculada no cliente (último ponto contra o primeiro da série). Preço em dólar formatado em `pt-BR` (`US$ 3.200,45`).
 - **Detalhes feitos no F6** [Decidido, 19/11/2026]: o cache é um estado de módulo com o último resultado bom (60 s), o fim do `429` e uma única requisição em voo para o app todo; o `502` não fica guardado (voltar à tela busca de novo), e o `429` sim (voltar segue a mesma contagem, sem nova chamada). Sem `Retry-After` legível, a espera é de 60 s. A primeira busca sai num `setTimeout(0)`, para a montagem dupla do `StrictMode` não gastar vaga com uma requisição cancelada. O corpo é conferido inteiro (`assetId`, `USD`, decimais planos, série de 1 a 1.000 pontos com instantes ISO UTC em ordem não decrescente); fora disso, erro, sem série parcial. Os instantes da série nunca são comparados com o relógio local (o último ponto é o da consulta e pode estar à frente dele); "Atualizado às" usa a hora local da resposta. A contagem do `429` fica fora do alerta, para o leitor de tela não a repetir a cada segundo. O corpo real foi aceito pela validação (169 pontos, preços com até 16 algarismos, texto exato).
+- **Em andamento** [Feito em 26/11/2026, seção 7.2]: entre o mercado e a atividade, os envios aceitos neste navegador que ainda não aparecem no histórico, com o estado do CT13 e o link para o acompanhamento. Só aparece com itens. Um envio que passa a `CONFIRMED` relê o saldo e a atividade (exceção ao "sem polling do saldo": é uma leitura por envio confirmado, não um ciclo).
 - Link para o explorador (`https://sepolia.etherscan.io/tx/<hash>`) só com o hash validado (`^0x[0-9a-fA-F]{64}$`), em nova aba com `rel="noopener noreferrer"`.
 
 ### 6.3 "Receber" [Sugestão, opcional]
@@ -173,8 +174,8 @@ Para financiar a carteira na demonstração o usuário precisa do endereço. A t
 - **Erros do servidor no formulário.** `ADDRESS_INVALID` e `AMOUNT_INVALID` voltam à etapa do formulário com a mensagem no campo e o foco nele (o erro do campo não tem `role="alert"`, então o foco no campo é o que faz o leitor de tela ler a mensagem). `BLOCKCHAIN_UNAVAILABLE` e `REQUEST_INVALID` ficam como alerta na revisão.
 - **Clique duplo entre etapas.** Um duplo clique em "Continuar" pode fazer o segundo clique cair no "Confirmar envio" desenhado logo depois no mesmo lugar. O botão ignora cliques com `event.detail > 1`; teclado e Enter têm `detail` 0 e passam, e o foco vai ao título ao trocar de etapa, então um Enter segurado não alcança o botão. A trava por `ref` continua sendo a proteção principal.
 - **Valor com ponto.** `"1.000"` é 1 ETH (o ponto é decimal; não há separador de milhar). O texto de ajuda do campo avisa, e a revisão mostra o valor por extenso ("1 ETH"), o que deixa o engano visível antes do envio.
-- **Sair da tela com o envio em voo.** A requisição não é cancelada (cancelar não desfaz o que o servidor já processou) e o resultado é ignorado; sem histórico (seção 7), o usuário perde o `taskId` nesse caso.
-- Em `202`: vai para `/transacoes/{taskId}` (com `replace`, para o botão "voltar" não reabrir a revisão).
+- **Sair da tela com o envio em voo.** A requisição não é cancelada (cancelar não desfaz o que o servidor já processou) e a tela não reage ao resultado. [Mudou em 26/11/2026] O 202 que chega depois de sair ainda é guardado na lista local (seção 7.2), então o envio aparece em "Em andamento" na carteira e o `taskId` não se perde (só neste navegador).
+- Em `202`: guarda o envio na lista local (seção 7.2) e vai para `/transacoes/{taskId}` (com `replace`, para o botão "voltar" não reabrir a revisão).
 
 ### 6.5 Acompanhamento (E5, P4)
 
@@ -220,6 +221,20 @@ Alternativas:
 - **Limitações do F8.** Sem paginação (só as 20 mais recentes). O indexador atrasa um pouco depois do bloco e o External Data Service guarda 12 s, então uma transação recém-confirmada pode só aparecer depois de "Atualizar". O caso do faucet que paga por contrato segue não testado (acima).
 
 **Custo e riscos do C10** (registrado em 17/11/2026; vale também para a rota do Core API na opção D, decidida em 18/11/2026): não há problema técnico; é decisão de escopo. (1) Reabre o Core API, que está completo e provado na Sepolia (C1 a C9, 392 testes), por uma rota que a Especificação entregue não tem: exige ficha nova, teste, atualização do README e uma nova rodada do roteiro ponta a ponta. (2) Precisa conferir se a tabela `eth_transaction` guarda destino, valor e data (sem isso a lista mostraria só estado e hash; na opção D não faz diferença, porque os dados vêm do indexador). (3) A banca não exige histórico; o ganho é de produto. Por isso a decisão ficou para depois do F5: com o fluxo principal funcionando e o tempo restante conhecido, escolhe-se C ou D (F8) ou o mínimo que não mexe nos outros módulos, que é guardar no `sessionStorage` o `taskId` da última transação enviada e mostrar um atalho "Acompanhar a última transação" na carteira.
+
+### 7.2 Envios em andamento (opção B, H08.3) [Decidido e feito em 26/11/2026]
+
+O histórico do F8 só traz o que já foi minerado. Quem envia e sai do acompanhamento antes do estado final perdia a referência do envio, e um `FAILED` antes da mineração (`REJECTED_BY_NETWORK`) nunca aparecia em lugar nenhum. Sem rota de listagem no Core API (e sem criar uma: nada de CT novo), a solução é a **opção B** da tabela acima, só para o que ainda não está no histórico. Ela complementa a opção D, não a substitui.
+
+- **O que se guarda.** No `202` do CT9, a tela de envio grava `{taskId, amountEth, destinationAddress, createdAt}` no `localStorage`. O valor fica como texto com ponto, como foi enviado, e o `createdAt` é o instante do 202 em ISO UTC. A gravação acontece mesmo se o usuário já saiu da tela (seção 6.4). Nada de token, hash ou estado: o estado vem sempre do CT13.
+- **Chave por usuário.** A chave é `lemma.pending.<sub>`, onde `sub` é o do JWT da sessão, em que o Core API grava o id do usuário. O `sub` é lido **sem conferir a assinatura** e serve só para separar os usuários no mesmo navegador. Ele nunca autoriza nada: uma task de outro usuário recebe `404` do Core API e sai da lista. Com o token sem `sub` legível (texto de até 64 caracteres em `[A-Za-z0-9_-]`), a lista fica desligada.
+- **Limites.** No máximo 20 itens (os mais antigos saem) e 24 h por item, qualquer que seja o estado. Item fora do formato é descartado. Todo acesso ao armazenamento é protegido: se ele lança ou vem vazio, a lista não aparece e o resto do app segue igual.
+- **Seção "Em andamento"** (`components/activity/PendingList`), entre o mercado e a atividade. Ela só aparece com itens. Cada item mostra o destino encurtado, o valor exato e o estado em ícone e texto ("Pendente", "Confirmada", "Falhou" com o motivo do mapa local da seção 6.5). O item é um link para `/transacoes/{taskId}`; "Dispensar" fica fora do link. Antes da primeira leitura aparece um esqueleto ("Consultando estado…" para o leitor de tela). O estado de cada item fica numa região `aria-live`.
+- **Consulta.** O estado vem do CT13, pelo mesmo `useTransactionPolling` do acompanhamento, com intervalo de **5 s** em vez de 3. Cada item é lido ao abrir a carteira e de novo só enquanto está `PENDING`. O recuo em falha, a pausa com a aba escondida e o aviso de demora são os do F5.
+- **Quando o item sai.** No `404 TRANSACTION_NOT_FOUND` e no `401 TOKEN_INVALID`. Quando está `CONFIRMED` e o hash (comparado sem caixa) aparece no histórico do CT26. Quando passa de 24 h. Um `FAILED` só sai pelo botão "Dispensar" ou pelas 24 h. Um `CONFIRMED` cujo hash o indexador ainda não trouxe fica como "Confirmada" até aparecer. Erro de rede ou do servidor mantém o item com o último estado, sem alerta; antes de qualquer leitura boa, mostra "Estado indisponível no momento".
+- **Confirmação.** A passagem de `PENDING` para `CONFIRMED` vista na tela relê o saldo (CT6) e a atividade (CT26), cada um com no máximo uma requisição em voo. Um item que já chega `CONFIRMED` ao abrir não relê nada, porque a carteira acabou de ler.
+- **Isolamento.** A seção fica dentro de um error boundary próprio: se ela quebrar, some, e saldo, mercado e atividade seguem.
+- **Limitações.** (1) **Só no navegador onde foi enviado**: trocar de navegador, usar janela anônima ou limpar os dados do site apaga a lista. (2) Não resolve o resultado incerto do envio (seção 6.4): sem `202` não há `taskId` a guardar. (3) Com vários itens `PENDING` há um ciclo de consulta por item; no pior caso, 20 itens dão 4 leituras do CT13 por segundo. (4) O destino e o valor ficam no disco do navegador até sair da lista (não são segredo, mas ficam visíveis a quem usar o mesmo perfil). (5) O `sub` não é verificado no cliente, o que é aceitável porque só nomeia a chave. (6) Logo depois de confirmar, o indexador e o cache de 12 s do External Data Service podem atrasar o hash no histórico; até lá o item fica como "Confirmada".
 
 ## 8. Cliente da API
 
@@ -286,7 +301,7 @@ src/
     errors.ts              mapa code -> mensagem em português
     auth.ts, wallet.ts, transactions.ts, market.ts    uma função por contrato
   auth/
-    AuthContext.tsx, sessionStorage.ts, RequireAuth.tsx
+    AuthContext.tsx, sessionStorage.ts, RequireAuth.tsx, tokenSubject.ts (sub do JWT só para a chave da seção 7.2)
   pages/
     RegisterPage, LoginPage, WalletPage, SendPage, TransactionPage, NotFoundPage
   components/
@@ -294,10 +309,11 @@ src/
     brand/     Logo, Mascot (usam os SVG do pacote, sem redesenhar)
     wallet/    BalanceCard, ReceivePanel
     market/    MarketPanel, PriceChart (SVG)
-    activity/  ActivityList (F8)
+    activity/  ActivityList e ActivityPanel (F8), PendingList ("Em andamento", seção 7.2)
     tx/        StatusTimeline, SendReview
   hooks/       useBalance, useMarket (com cache de 60 s), useTransactionPolling, useActivity (sem cache)
-  lib/         format.ts (ETH por texto), market.ts (USD e variação), instant.ts (datas), validate.ts
+  lib/         format.ts (ETH por texto), market.ts (USD e variação), instant.ts (datas), validate.ts,
+               pendingTransactions.ts (envios guardados no localStorage, seção 7.2)
   styles/      index.css (Tailwind e os tokens da seção 4)
   assets/brand logos, símbolo, mascote e favicon copiados de lemma-artes
 ```
@@ -330,6 +346,7 @@ Um passo por card do OpenProject, um commit por mudança coerente, rodapé `OP#<
 | F6 | Mercado: painel, gráfico SVG, cache de 60 s, `429` com contagem, `502` | Contra o External Data Service real ou um falso: preço e gráfico; `429` mostra a contagem e libera o botão ao fim; `502` mostra "indisponível" sem afetar o saldo | H06.3 (#881). **Feito em 19/11/2026** (7 commits; 530 testes; preço e série reais conferidos por `curl` pelo Core API e o corpo real aceito pela validação; `429` e `502` provados por testes e por um servidor falso temporário fora do repositório) |
 | F7 | Acabamento: acessibilidade, movimento, 404, README do Frontend, roteiro manual ponta a ponta registrado | Roteiro 4 da seção 13.1 passa; contrastes e 360 px conferidos | H04.4 (#1317, parte Frontend) e cards de teste |
 | F8 (opção D da seção 7) | Lista de atividade na carteira, depois do passo C10 no Core API e da operação de histórico no External Data Service | Lista das últimas transações do usuário, cada uma com link ao explorador | H08.4 (#1406). **Feito em 19/11/2026** (5 commits; 623 testes; provado de verdade: um usuário novo recebeu `200` com `transactions: []` do `GET /wallet/transactions` real, com `Access-Control-Allow-Origin: http://localhost:5173`, e esse corpo foi aceito pela validação; o container serve `/carteira` com o bundle novo. Só em teste, com o formato exato da CT26: lista com itens, `SENT`, `RECEIVED`, `SELF`, `FAILED`, outra ponta nula, valor de 1 wei, `502` e `500`. A lista com dados reais fica para a conferência no navegador com uma conta que já tem transações) |
+| F8b (opção B da seção 7, complemento) | Envios em andamento na carteira: lista local por usuário e estado pelo CT13 (seção 7.2) | Envio aceito aparece em "Em andamento" mesmo depois de sair do acompanhamento; `PENDING` vira `CONFIRMED` sem recarregar e relê saldo e atividade; `FAILED` mostra o motivo e sai por "Dispensar"; o item some quando o hash entra no histórico | H08.3 (#887). **Feito em 26/11/2026** (3 commits, mais um do H02.3 que alinhou o teste da senha longa à mensagem de 23/11; 675 testes; sem rota nova no Core API e sem CT novo. Só em teste: `FAILED` com motivo, `404`, `401`, hash já no histórico, limite de 20, 24 h e armazenamento que lança. A validação com um envio real fica para a conferência no navegador) |
 
 Dependências: F1 antes de todos; F2 antes de F3 a F6; F4 antes de F5; F6 não depende de F4 nem de F5 e pode ser feito antes se convier; F8 depende do C10 e da operação de histórico no External Data Service. Ordem a partir do F5 [Decidido, 18/11/2026]: External Data Service (mercado primeiro, histórico depois), F6, C10 no Core API, F8, F7 por último, porque o F7 registra o roteiro ponta a ponta e deve cobrir tudo o que entrou.
 
