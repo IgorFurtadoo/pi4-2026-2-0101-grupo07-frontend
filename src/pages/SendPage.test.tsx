@@ -1,8 +1,9 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ERROR_MESSAGES, UNCERTAIN_SEND_MESSAGE } from '../api/errors'
+import { pendingKey, readPending } from '../lib/pendingTransactions'
 import { pendingResponse } from '../test/fetch'
-import { TEST_TOKEN, renderApp, storeValidSession } from '../test/renderApp'
+import { TEST_TOKEN, renderApp, storeValidSession, tokenWithSubject } from '../test/renderApp'
 
 type FetchArgs = [url: string, init: RequestInit]
 type Reply = Response | Promise<Response> | Error | 'pendente'
@@ -470,5 +471,95 @@ describe('SendPage: sair com o envio em voo', () => {
     expect(router.state.location.pathname).toBe('/carteira')
     expect(screen.getByRole('heading', { name: 'Carteira' })).toBeInTheDocument()
     expect(sendCalls(fetchMock)).toBe(1)
+  })
+})
+
+describe('SendPage: envio guardado para "Em andamento"', () => {
+  const USER_TOKEN = tokenWithSubject('42')
+
+  /** Como reachReview, mas com a sessão de um token que tem `sub`. */
+  async function reachReviewAs(token: string, entry: Parameters<typeof renderApp>[0] = '/enviar') {
+    storeValidSession(Date.now(), token)
+    const view = renderApp(entry)
+    await screen.findByRole('heading', { name: 'Enviar ETH' })
+    fill(ADDRESS, ' 0,01 ')
+    clickContinue()
+    expect(screen.getByRole('heading', { name: 'Revise o envio' })).toBeInTheDocument()
+    return view
+  }
+
+  it('no 202 grava taskId, valor, destino e instante na chave do usuário do token', async () => {
+    stubFetch(accepted())
+    const before = Date.now()
+    await reachReviewAs(USER_TOKEN)
+
+    fireEvent.click(confirmButton())
+    await screen.findByRole('heading', { name: 'Acompanhamento da transação' })
+
+    expect(window.localStorage.getItem(pendingKey('42'))).not.toBeNull()
+    const [record, ...rest] = readPending('42')
+    expect(rest).toEqual([])
+    expect(record).toEqual({
+      taskId: TASK_ID,
+      amountEth: '0.01',
+      destinationAddress: ADDRESS,
+      createdAt: expect.stringMatching(/Z$/),
+    })
+    expect(Date.parse(record.createdAt)).toBeGreaterThanOrEqual(before - 1000)
+    // Outro usuário no mesmo navegador não vê.
+    expect(readPending('7')).toEqual([])
+  })
+
+  it('grava mesmo se o usuário saiu da tela antes do 202', async () => {
+    const pending = deferred()
+    stubFetch(pending.promise)
+    const { router } = await reachReviewAs(USER_TOKEN)
+
+    fireEvent.click(confirmButton())
+    await act(() => router.navigate('/carteira'))
+    await act(async () => pending.resolve(accepted()))
+
+    expect(router.state.location.pathname).toBe('/carteira')
+    expect(readPending('42').map((record) => record.taskId)).toEqual([TASK_ID])
+  })
+
+  it('erro no envio não grava nada', async () => {
+    stubFetch(errorResponse(502, 'BLOCKCHAIN_UNAVAILABLE'))
+    await reachReviewAs(USER_TOKEN)
+
+    fireEvent.click(confirmButton())
+    await screen.findByRole('alert')
+
+    expect(readPending('42')).toEqual([])
+  })
+
+  it('token sem `sub` legível: envia normalmente e não grava nada', async () => {
+    stubFetch(accepted())
+    await reachReviewAs(TEST_TOKEN)
+
+    fireEvent.click(confirmButton())
+    await screen.findByRole('heading', { name: 'Acompanhamento da transação' })
+
+    expect(window.localStorage.length).toBe(0)
+  })
+
+  it('armazenamento que lança não impede ir ao acompanhamento', async () => {
+    stubFetch(accepted())
+    const { router } = await reachReviewAs(USER_TOKEN)
+    const fail = () => {
+      throw new DOMException('Bloqueado', 'SecurityError')
+    }
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(fail)
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(fail)
+
+    try {
+      fireEvent.click(confirmButton())
+      await screen.findByRole('heading', { name: 'Acompanhamento da transação' })
+      expect(router.state.location.pathname).toBe(`/transacoes/${TASK_ID}`)
+      expect(setItem).toHaveBeenCalled()
+    } finally {
+      getItem.mockRestore()
+      setItem.mockRestore()
+    }
   })
 })

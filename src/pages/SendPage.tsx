@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { UNCERTAIN_SEND_MESSAGE, isUncertainSendError, messageFor } from '../api/errors'
 import { sendTransaction, type SendTransactionResult } from '../api/transactions'
+import { tokenSubject } from '../auth/tokenSubject'
 import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { TextField } from '../components/ui/TextField'
 import { ETH_DECIMALS, formatEth, normalizeAmountInput } from '../lib/format'
+import { addPending } from '../lib/pendingTransactions'
 import { addressProblem, amountProblem, type AddressProblem, type AmountProblem } from '../lib/validate'
 
 const ADDRESS_MESSAGES: Record<AddressProblem, string> = {
@@ -138,9 +140,10 @@ export function SendPage() {
     setSending(true)
     setReviewError(null)
 
+    const token = session?.token ?? ''
     let result: SendTransactionResult
     try {
-      result = await sendTransaction(session?.token ?? '', {
+      result = await sendTransaction(token, {
         destinationAddress: address,
         amountEth: amount,
       })
@@ -153,10 +156,18 @@ export function SendPage() {
       return
     }
 
-    // Em sucesso a trava fica: a tela é substituída. Se o usuário saiu antes
-    // do 202, a requisição não foi cancelada (cancelar não desfaz o que o
-    // servidor já processou) e o resultado é ignorado; sem histórico de
-    // transações (desenho, seção 7, [Aberto]), o taskId se perde nesse caso.
+    // O envio aceito vai para a lista "Em andamento" da carteira (desenho,
+    // seção 7.2), mesmo que o usuário já tenha saído da tela: a requisição não
+    // é cancelada (cancelar não desfaz o que o servidor já processou) e o
+    // taskId não se perde. O armazenamento é protegido e nunca impede seguir.
+    addPending(tokenSubject(token), {
+      taskId: result.taskId,
+      amountEth: normalizeAmountInput(amount),
+      destinationAddress: address.trim(),
+      createdAt: new Date().toISOString(),
+    })
+
+    // Em sucesso a trava fica: a tela é substituída.
     if (!aliveRef.current) return
     navigate(`/transacoes/${encodeURIComponent(result.taskId)}`, { replace: true })
   }

@@ -17,4 +17,6 @@ afterEach(() => {
   cleanup()
   // O mercado guarda o resultado em memória de módulo (cache de 60 s).
   resetMarketStore()
+  // Envios em andamento (lib/pendingTransactions.ts): nada passa de um teste a outro.
+  window.localStorage.clear()
 })

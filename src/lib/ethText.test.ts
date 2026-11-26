@@ -13,6 +13,7 @@ const SOURCES = import.meta.glob<string>(
     '../api/transactions.ts',
     './format.ts',
     './validate.ts',
+    './pendingTransactions.ts',
     '../hooks/useBalance.ts',
     '../hooks/useTransactionPolling.ts',
     '../hooks/useActivity.ts',
@@ -47,6 +48,7 @@ describe('ETH sem Number', () => {
       '../pages/TransactionPage.tsx',
       '../pages/WalletPage.tsx',
       './format.ts',
+      './pendingTransactions.ts',
       './validate.ts',
     ])
   })

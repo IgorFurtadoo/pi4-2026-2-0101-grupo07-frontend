@@ -7,9 +7,21 @@ import { routes } from '../routes'
 /** Token de teste; nenhum teste o imprime. */
 export const TEST_TOKEN = 'eyJ0ZXN0IjoidG9rZW4ifQ.e30.assinatura'
 
+/**
+ * Token de teste com `sub` legível (auth/tokenSubject.ts), para os testes da
+ * lista "Em andamento". Assinatura falsa: o Frontend não a confere.
+ */
+export function tokenWithSubject(subject: string): string {
+  const payload = btoa(JSON.stringify({ sub: subject }))
+    .replace(/=+$/, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+  return `eyJhbGciOiJIUzI1NiJ9.${payload}.assinatura`
+}
+
 /** Grava no sessionStorage uma sessão que vence daqui a 4 h. */
-export function storeValidSession(now: number = Date.now()): void {
-  writeSession({ token: TEST_TOKEN, expiresAt: new Date(now + 4 * 60 * 60 * 1000).toISOString() })
+export function storeValidSession(now: number = Date.now(), token: string = TEST_TOKEN): void {
+  writeSession({ token, expiresAt: new Date(now + 4 * 60 * 60 * 1000).toISOString() })
 }
 
 /**
