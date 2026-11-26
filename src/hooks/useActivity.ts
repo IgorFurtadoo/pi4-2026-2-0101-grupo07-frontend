@@ -15,6 +15,9 @@ export type ActivityState = {
   error: ActivityError | null
 }
 
+/** O que useActivity devolve: o estado e a releitura. */
+export type ActivityHandle = ActivityState & { refresh: () => void }
+
 const INITIAL_STATE: ActivityState = { status: 'loading', data: null, error: null }
 
 function toActivityError(error: unknown): ActivityError {
@@ -37,7 +40,7 @@ function toActivityError(error: unknown): ActivityError {
  *   estado.
  * - O TOKEN_INVALID é tratado no cliente e no AuthContext, não aqui.
  */
-export function useActivity(token: string) {
+export function useActivity(token: string): ActivityHandle {
   const [state, setState] = useState<ActivityState>(INITIAL_STATE)
   const controllerRef = useRef<AbortController | null>(null)
 

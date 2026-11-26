@@ -11,6 +11,11 @@ export const SLOW_AFTER_MS = 10 * 60_000
 /** Intervalo depois do aviso de demora. */
 export const SLOW_INTERVAL_MS = 10_000
 
+export type PollingOptions = {
+  /** Intervalo normal enquanto PENDING; padrão POLL_INTERVAL_MS (o acompanhamento usa 3 s). */
+  intervalMs?: number
+}
+
 export type PollingError = {
   /** Code do erro; o texto da tela vem de messageFor(code, serverMessage). */
   code: string
@@ -69,9 +74,15 @@ function backoffFor(failures: number): number {
  *   dois ciclos vivos.
  *
  * `retry()` existe para o "Tentar novamente" da primeira leitura sem dado; o
- * recuo automático continua de qualquer forma.
+ * recuo automático continua de qualquer forma. `intervalMs` troca só o
+ * intervalo normal (a lista "Em andamento" da carteira usa 5 s); recuo, aviso
+ * de demora e pausa seguem iguais.
  */
-export function useTransactionPolling(token: string, taskId: string) {
+export function useTransactionPolling(
+  token: string,
+  taskId: string,
+  { intervalMs = POLL_INTERVAL_MS }: PollingOptions = {},
+) {
   const [state, setState] = useState<TransactionPollingState>(INITIAL_STATE)
   const retryRef = useRef<() => void>(() => {})
 
@@ -120,7 +131,7 @@ export function useTransactionPolling(token: string, taskId: string) {
             reconnecting: false,
             slow: slow && !final,
           })
-          if (!final) schedule(slow ? SLOW_INTERVAL_MS : POLL_INTERVAL_MS)
+          if (!final) schedule(slow ? SLOW_INTERVAL_MS : intervalMs)
         },
         (cause: unknown) => {
           if (current.signal.aborted) return
@@ -179,7 +190,7 @@ export function useTransactionPolling(token: string, taskId: string) {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       retryRef.current = () => {}
     }
-  }, [token, taskId])
+  }, [token, taskId, intervalMs])
 
   const retry = useCallback(() => retryRef.current(), [])
 

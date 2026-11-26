@@ -2,10 +2,12 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ERROR_MESSAGES } from '../api/errors'
 import { SESSION_KEY } from '../auth/sessionStorage'
-import { ACTIVITY_URL, activityBody, activityItem } from '../test/activity'
+import { ACTIVITY_URL, activityBody, activityItem, txHash } from '../test/activity'
 import { pendingResponse } from '../test/fetch'
 import { MARKET_URL, marketBody } from '../test/market'
-import { TEST_TOKEN, renderApp, storeValidSession } from '../test/renderApp'
+import { addPending, pendingKey, readPending } from '../lib/pendingTransactions'
+import { pendingRecord, taskResponse } from '../test/pending'
+import { TEST_TOKEN, renderApp, storeValidSession, tokenWithSubject } from '../test/renderApp'
 
 type FetchArgs = [url: string, init: RequestInit]
 
@@ -493,5 +495,163 @@ describe('WalletPage com a lista de atividade', () => {
     await act(async () => {})
 
     expect(signal?.aborted).toBe(true)
+  })
+})
+
+describe('WalletPage com envios "Em andamento"', () => {
+  const USER_TOKEN = tokenWithSubject('42')
+  const TASK_URL = 'http://localhost:8080/transactions/t1'
+
+  /**
+   * Como stubRoutes, mais o CT13 da task t1 (fila `task`). O mercado fica
+   * pendente.
+   */
+  function stubWithTask(balance: Reply[], activity: Reply[], task: Reply[]) {
+    const queues: Record<string, Reply[]> = { balance: [...balance], activity: [...activity], task: [...task] }
+    const mocks = {
+      balance: vi.fn<(...args: FetchArgs) => Promise<Response>>((_u, init) => reply(queues.balance.shift() ?? 'pendente', init)),
+      activity: vi.fn<(...args: FetchArgs) => Promise<Response>>((_u, init) => reply(queues.activity.shift() ?? 'pendente', init)),
+      task: vi.fn<(...args: FetchArgs) => Promise<Response>>((_u, init) => reply(queues.task.shift() ?? 'pendente', init)),
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) =>
+        url === MARKET_URL
+          ? pendingResponse(init.signal)
+          : url === ACTIVITY_URL
+            ? mocks.activity(url, init)
+            : url === TASK_URL
+              ? mocks.task(url, init)
+              : mocks.balance(url, init),
+      ),
+    )
+    return mocks
+  }
+
+  function activityResponse(items: string[]) {
+    return new Response(activityBody(items), { status: 200 })
+  }
+
+  function openWalletAs(token = USER_TOKEN) {
+    storeValidSession(Date.now(), token)
+    return renderApp('/carteira')
+  }
+
+  const pendingSection = () => screen.findByRole('region', { name: 'Em andamento' })
+
+  it('mostra o envio guardado acima da atividade, com link para o acompanhamento', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubWithTask([balanceResponse('1')], [activityResponse([])], [taskResponse('t1', 'PENDING')])
+    const { container } = openWalletAs()
+
+    const section = await pendingSection()
+    await waitFor(() => expect(within(section).getByRole('link')).toHaveTextContent('Pendente'))
+    expect(within(section).getByRole('link')).toHaveAttribute('href', '/transacoes/t1')
+
+    const order = [...container.querySelectorAll('section[aria-labelledby]')].map((s) =>
+      s.getAttribute('aria-labelledby'),
+    )
+    expect(order.indexOf('titulo-mercado')).toBeLessThan(order.indexOf('titulo-em-andamento'))
+    expect(order.indexOf('titulo-em-andamento')).toBeLessThan(order.indexOf('titulo-atividade'))
+  })
+
+  it('sem envios guardados a seção não aparece', async () => {
+    stubWithTask([balanceResponse('1')], [activityResponse([])], [])
+    openWalletAs()
+    await within(await screen.findByRole('region', { name: 'Atividade' })).findByText(/Nenhuma transação ainda/)
+    expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull()
+  })
+
+  it('um usuário não vê os envios de outro no mesmo navegador', async () => {
+    addPending('7', pendingRecord('t1'))
+    const mocks = stubWithTask([balanceResponse('1')], [activityResponse([])], [])
+    openWalletAs()
+    await within(await screen.findByRole('region', { name: 'Atividade' })).findByText(/Nenhuma transação ainda/)
+    expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull()
+    expect(mocks.task).not.toHaveBeenCalled()
+    expect(readPending('7')).toHaveLength(1)
+  })
+
+  it('PENDING que confirma relê saldo e atividade; com o hash no histórico, o item sai', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      addPending('42', pendingRecord('t1'))
+      const mocks = stubWithTask(
+        [balanceResponse('1'), balanceResponse('0.99')],
+        [activityResponse([]), activityResponse([activityItem({ hash: txHash(9), direction: 'SENT' })])],
+        [taskResponse('t1', 'PENDING'), taskResponse('t1', 'CONFIRMED', { transactionHash: txHash(9) })],
+      )
+      openWalletAs()
+      const section = await pendingSection()
+      await waitFor(() => expect(within(section).getByRole('link')).toHaveTextContent('Pendente'))
+      expect(mocks.balance).toHaveBeenCalledTimes(1)
+      expect(mocks.activity).toHaveBeenCalledTimes(1)
+
+      await act(() => vi.advanceTimersByTimeAsync(5_000))
+
+      await waitFor(() => expect(mocks.balance).toHaveBeenCalledTimes(2))
+      expect(mocks.activity).toHaveBeenCalledTimes(2)
+      await waitFor(() => expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull())
+      expect(await balanceCard()).toHaveTextContent('0,99 ETH')
+      expect(window.localStorage.getItem(pendingKey('42'))).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('hash já presente no histórico ao abrir: não duplica e sai do armazenamento', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubWithTask(
+      [balanceResponse('1')],
+      [activityResponse([activityItem({ hash: txHash(9), direction: 'SENT' })])],
+      [taskResponse('t1', 'CONFIRMED', { transactionHash: txHash(9) })],
+    )
+    openWalletAs()
+    const activity = await screen.findByRole('region', { name: 'Atividade' })
+    await within(activity).findAllByRole('listitem')
+    await waitFor(() => expect(readPending('42')).toEqual([]))
+    expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull()
+  })
+
+  it('FAILED: "Dispensar" tira o item da tela e do armazenamento', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubWithTask(
+      [balanceResponse('1')],
+      [activityResponse([])],
+      [taskResponse('t1', 'FAILED', { failureReason: 'REJECTED_BY_NETWORK' })],
+    )
+    openWalletAs()
+    const section = await pendingSection()
+    fireEvent.click(await within(section).findByRole('button', { name: /Dispensar/ }))
+
+    expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull()
+    expect(readPending('42')).toEqual([])
+  })
+
+  it('404 TRANSACTION_NOT_FOUND tira o item do armazenamento', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubWithTask([balanceResponse('1')], [activityResponse([])], [errorResponse(404, 'TRANSACTION_NOT_FOUND')])
+    openWalletAs()
+    await pendingSection()
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull())
+    expect(readPending('42')).toEqual([])
+  })
+
+  it('localStorage que lança não derruba a carteira: saldo e atividade aparecem', async () => {
+    const blocked = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('Bloqueado', 'SecurityError')
+    })
+    try {
+      stubWithTask([balanceResponse('1')], [activityResponse([activityItem()])], [])
+      openWalletAs()
+
+      expect(await balanceCard()).toHaveTextContent('1 ETH')
+      const activity = await screen.findByRole('region', { name: 'Atividade' })
+      expect(await within(activity).findAllByRole('listitem')).toHaveLength(1)
+      expect(screen.queryByRole('region', { name: 'Em andamento' })).toBeNull()
+      expect(blocked).toHaveBeenCalled()
+    } finally {
+      blocked.mockRestore()
+    }
   })
 })

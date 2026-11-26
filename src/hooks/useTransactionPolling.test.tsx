@@ -430,3 +430,16 @@ describe('useTransactionPolling', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('useTransactionPolling com intervalMs', () => {
+  it('usa o intervalo dado enquanto PENDING (a lista "Em andamento" usa 5 s)', async () => {
+    const fetchMock = stubFetch([tx('PENDING'), tx('PENDING')])
+    renderHook(() => useTransactionPolling(TOKEN, TASK_ID, { intervalMs: 5_000 }))
+    await flush()
+
+    await advance(POLL_INTERVAL_MS)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await advance(5_000 - POLL_INTERVAL_MS)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+})

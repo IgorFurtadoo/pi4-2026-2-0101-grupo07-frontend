@@ -1,15 +1,19 @@
 import { RefreshCw } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useCallback, useId, useMemo, useState } from 'react'
 import { messageFor } from '../api/errors'
+import { tokenSubject } from '../auth/tokenSubject'
 import { useAuth } from '../auth/useAuth'
-import { ActivityList } from '../components/activity/ActivityList'
+import { ActivityPanel } from '../components/activity/ActivityList'
+import { PendingList } from '../components/activity/PendingList'
 import { MarketPanel } from '../components/market/MarketPanel'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { BalanceCard } from '../components/wallet/BalanceCard'
 import { ReceivePanel } from '../components/wallet/ReceivePanel'
+import { useActivity } from '../hooks/useActivity'
 import { useBalance } from '../hooks/useBalance'
+import { readPending, removePending } from '../lib/pendingTransactions'
 
 /** Casca azul do cartão enquanto a primeira leitura não chega. */
 function BalanceCardSkeleton() {
@@ -28,16 +32,42 @@ function BalanceCardSkeleton() {
 }
 
 /**
- * Carteira (CT6, CT17 e CT26, desenho, seções 5, 6.2 e 7): saldo ao abrir e
- * pelo botão "Atualizar saldo", sem polling; abaixo, o painel de mercado e a
- * lista de atividade, sempre montados e independentes do saldo e entre si
- * (uma falha num não afeta os outros). Erros pelo code, com ícone e texto,
- * sem mascote (o mascote só aparece no vazio da atividade). O TOKEN_INVALID é
- * tratado no cliente e no AuthContext (o RequireAuth leva a /entrar).
+ * Carteira (CT6, CT13, CT17 e CT26, desenho, seções 5, 6.2 e 7): saldo ao
+ * abrir e pelo botão "Atualizar saldo", sem polling; abaixo, o painel de
+ * mercado, os envios "Em andamento" (só com itens guardados neste navegador)
+ * e a lista de atividade, independentes do saldo e entre si (uma falha num
+ * não afeta os outros). Um envio que confirma relê o saldo e a atividade.
+ * Erros pelo code, com ícone e texto, sem mascote (o mascote só aparece no
+ * vazio da atividade). O TOKEN_INVALID é tratado no cliente e no AuthContext
+ * (o RequireAuth leva a /entrar).
  */
 export function WalletPage() {
   const { session } = useAuth()
-  const { status, balance, error, reload } = useBalance(session?.token ?? '')
+  const token = session?.token ?? ''
+  const { status, balance, error, reload } = useBalance(token)
+  const activity = useActivity(token)
+  const refreshActivity = activity.refresh
+
+  // Envios guardados neste navegador, na chave do usuário do token (seção 7.2).
+  const subject = useMemo(() => tokenSubject(token), [token])
+  const [pending, setPending] = useState(() => readPending(subject))
+  const removeFromPending = useCallback(
+    (taskId: string) => {
+      removePending(subject, taskId)
+      setPending((records) =>
+        records.filter((record) => record.taskId.toLowerCase() !== taskId.toLowerCase()),
+      )
+    },
+    [subject],
+  )
+  const historyHashes = useMemo(
+    () => new Set((activity.data?.transactions ?? []).map((item) => item.hash.toLowerCase())),
+    [activity.data],
+  )
+  const handleConfirmed = useCallback(() => {
+    reload()
+    refreshActivity()
+  }, [reload, refreshActivity])
   const [receiveOpen, setReceiveOpen] = useState(false)
   const [userReloaded, setUserReloaded] = useState(false)
   const receivePanelId = useId()
@@ -101,8 +131,15 @@ export function WalletPage() {
         )}
       </div>
 
-      <MarketPanel token={session?.token ?? ''} />
-      <ActivityList token={session?.token ?? ''} />
+      <MarketPanel token={token} />
+      <PendingList
+        token={token}
+        records={pending}
+        historyHashes={historyHashes}
+        onRemove={removeFromPending}
+        onConfirmed={handleConfirmed}
+      />
+      <ActivityPanel activity={activity} />
     </section>
   )
 }

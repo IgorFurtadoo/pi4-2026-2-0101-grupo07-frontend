@@ -10,7 +10,7 @@ import {
 import { useState } from 'react'
 import { messageFor } from '../../api/errors'
 import type { ActivityDirection, ActivityStatus, WalletTransaction } from '../../api/wallet'
-import { useActivity } from '../../hooks/useActivity'
+import { useActivity, type ActivityHandle } from '../../hooks/useActivity'
 import { etherscanTxUrl } from '../../lib/explorer'
 import { ETH_DECIMALS, formatEth, shortenAddress } from '../../lib/format'
 import { formatInstant } from '../../lib/instant'
@@ -149,7 +149,16 @@ function EmptyActivity() {
  * "Tentar de novo"; com lista anterior, uma falha mantém a lista. Sem polling.
  */
 export function ActivityList({ token }: { token: string }) {
-  const { status, data, error, refresh } = useActivity(token)
+  return <ActivityPanel activity={useActivity(token)} />
+}
+
+/**
+ * O painel com o estado já lido. A carteira chama useActivity ela mesma para
+ * comparar os hashes com a lista "Em andamento" e reler a atividade quando um
+ * envio confirma (desenho, seção 7.2).
+ */
+export function ActivityPanel({ activity }: { activity: ActivityHandle }) {
+  const { status, data, error, refresh } = activity
   const [userRefreshed, setUserRefreshed] = useState(false)
   const loading = status === 'loading'
 

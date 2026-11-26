@@ -38,6 +38,7 @@ describe('ETH sem Number', () => {
       '../api/transactions.ts',
       '../api/wallet.ts',
       '../components/activity/ActivityList.tsx',
+      '../components/activity/PendingList.tsx',
       '../components/tx/StatusTimeline.tsx',
       '../components/wallet/BalanceCard.tsx',
       '../components/wallet/ReceivePanel.tsx',
