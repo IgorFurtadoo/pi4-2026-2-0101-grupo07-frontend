@@ -10,7 +10,7 @@ type FetchArgs = [url: string, init: RequestInit]
 type Reply = Response | Error | 'pendente'
 
 const NOTE =
-  'Mostra só transações já confirmadas na rede; envios em andamento aparecem no acompanhamento.'
+  'Mostra só transações já confirmadas na rede; envios em andamento aparecem em “Em andamento” e no acompanhamento.'
 
 const ok = (items: string[]) => fakeResponse(200, activityBody(items))
 

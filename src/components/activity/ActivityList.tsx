@@ -34,7 +34,7 @@ const STATUS: Record<ActivityStatus, { Icon: typeof CircleCheck; label: string; 
 }
 
 const ACTIVITY_NOTE =
-  'Mostra só transações já confirmadas na rede; envios em andamento aparecem no acompanhamento.'
+  'Mostra só transações já confirmadas na rede; envios em andamento aparecem em “Em andamento” e no acompanhamento.'
 
 /**
  * Sinal do valor: − no que saiu, + no que entrou. Sem sinal em FAILED (o
