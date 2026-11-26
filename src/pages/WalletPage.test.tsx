@@ -101,8 +101,8 @@ describe('WalletPage', () => {
     const { container } = openWallet()
 
     await screen.findByRole('heading', { name: 'Carteira' })
-    // Só a área do saldo: o painel de mercado (pendente aqui) tem o seu próprio aria-busy.
-    const area = container.querySelector('section[aria-labelledby="titulo-carteira"] > [aria-busy]')
+    // Só o bloco do saldo: o painel de mercado (pendente aqui) tem o seu próprio aria-busy.
+    const area = container.querySelector('[data-block="saldo"]')
     expect(area).toHaveAttribute('aria-busy', 'true')
     expect(area?.querySelector('[data-skeleton]')).toHaveAttribute('aria-hidden', 'true')
     expect(screen.getByText('Carregando saldo…')).toBeInTheDocument()
@@ -539,7 +539,7 @@ describe('WalletPage com envios "Em andamento"', () => {
 
   const pendingSection = () => screen.findByRole('region', { name: 'Em andamento' })
 
-  it('mostra o envio guardado acima da atividade, com link para o acompanhamento', async () => {
+  it('mostra o envio guardado logo depois do saldo, com link para o acompanhamento', async () => {
     addPending('42', pendingRecord('t1'))
     stubWithTask([balanceResponse('1')], [activityResponse([])], [taskResponse('t1', 'PENDING')])
     const { container } = openWalletAs()
@@ -551,8 +551,10 @@ describe('WalletPage com envios "Em andamento"', () => {
     const order = [...container.querySelectorAll('section[aria-labelledby]')].map((s) =>
       s.getAttribute('aria-labelledby'),
     )
-    expect(order.indexOf('titulo-mercado')).toBeLessThan(order.indexOf('titulo-em-andamento'))
-    expect(order.indexOf('titulo-em-andamento')).toBeLessThan(order.indexOf('titulo-atividade'))
+    // Ordem do DOM (a do celular): saldo, em andamento, mercado, atividade.
+    expect(order.indexOf('titulo-saldo')).toBeLessThan(order.indexOf('titulo-em-andamento'))
+    expect(order.indexOf('titulo-em-andamento')).toBeLessThan(order.indexOf('titulo-mercado'))
+    expect(order.indexOf('titulo-mercado')).toBeLessThan(order.indexOf('titulo-atividade'))
   })
 
   it('sem envios guardados a seção não aparece', async () => {
@@ -653,5 +655,102 @@ describe('WalletPage com envios "Em andamento"', () => {
     } finally {
       blocked.mockRestore()
     }
+  })
+})
+
+describe('WalletPage: grade de blocos', () => {
+  const USER_TOKEN = tokenWithSubject('42')
+
+  /** Os quatro blocos são os filhos diretos da grade, na ordem do DOM. */
+  async function blocks() {
+    const balance = await screen.findByRole('region', { name: 'Saldo' })
+    const grid = balance.closest('[data-block="saldo"]')!.parentElement!
+    return { grid, children: [...grid.children] as HTMLElement[] }
+  }
+
+  function openWalletAs(token = USER_TOKEN) {
+    storeValidSession(Date.now(), token)
+    return renderApp('/carteira')
+  }
+
+  /** Saldo 1 ETH e atividade vazia; mercado e CT13 ficam pendentes. */
+  function stubGrid() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        if (url === 'http://localhost:8080/wallet/balance') return reply(balanceResponse('1'), init)
+        if (url === ACTIVITY_URL) return reply(new Response(activityBody([]), { status: 200 }), init)
+        return pendingResponse(init.signal)
+      }),
+    )
+  }
+
+  it('sem "Em andamento": Saldo e Mercado em cima, Atividade nas 12 colunas', async () => {
+    stubGrid()
+    openWalletAs()
+
+    const { grid, children } = await blocks()
+    expect(grid).toHaveClass('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-12', 'gap-3', 'lg:gap-4')
+    expect(children).toHaveLength(3)
+    const [balance, market, activity] = children
+    expect(within(balance).getByRole('region', { name: 'Saldo' })).toBeInTheDocument()
+    expect(market).toBe(screen.getByRole('region', { name: 'Mercado · ETH' }))
+    expect(activity).toBe(screen.getByRole('region', { name: 'Atividade' }))
+
+    expect(balance).toHaveClass('lg:col-span-5', 'lg:row-start-1')
+    expect(market).toHaveClass('lg:col-span-7', 'lg:col-start-6', 'lg:row-start-1', 'sm:col-start-2')
+    expect(activity).toHaveClass('lg:col-span-12', 'lg:row-start-2', 'sm:col-span-2')
+    expect(activity).not.toHaveClass('lg:col-span-7')
+  })
+
+  it('com "Em andamento": ordem do celular no DOM e as duas colunas embaixo no desktop', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubGrid()
+    openWalletAs()
+
+    const { children } = await blocks()
+    expect(children).toHaveLength(4)
+    const [balance, pending, market, activity] = children
+    expect(within(balance).getByRole('region', { name: 'Saldo' })).toBeInTheDocument()
+    expect(pending).toBe(screen.getByRole('region', { name: 'Em andamento' }))
+    expect(market).toBe(screen.getByRole('region', { name: 'Mercado · ETH' }))
+    expect(activity).toBe(screen.getByRole('region', { name: 'Atividade' }))
+
+    expect(pending).toHaveClass('lg:col-span-5', 'lg:col-start-1', 'lg:row-start-2', 'sm:col-span-2')
+    expect(activity).toHaveClass('lg:col-span-7', 'lg:col-start-6', 'lg:row-start-2')
+    expect(activity).not.toHaveClass('lg:col-span-12')
+  })
+
+  it('"Dispensar" o último envio devolve a Atividade às 12 colunas', async () => {
+    addPending('42', pendingRecord('t1'))
+    const fetchMock = vi.fn((url: string, init: RequestInit) => {
+      if (url.endsWith('/transactions/t1')) {
+        return Promise.resolve(
+          new Response('{"taskId":"t1","status":"FAILED","destinationAddress":"0x5B38Da6a701c568545dCfcB03FcB875f56beddC4","updatedAt":"2026-11-26T12:00:00Z","failureReason":"REJECTED_BY_NETWORK","amountEth":0.01}', { status: 200 }),
+        )
+      }
+      if (url === ACTIVITY_URL) return Promise.resolve(new Response(activityBody([]), { status: 200 }))
+      return pendingResponse(init.signal)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    openWalletAs()
+
+    const pending = await screen.findByRole('region', { name: 'Em andamento' })
+    fireEvent.click(await within(pending).findByRole('button', { name: /Dispensar/ }))
+
+    expect(screen.getByRole('region', { name: 'Atividade' })).toHaveClass('lg:col-span-12')
+  })
+
+  it('a ordem dos títulos segue h1 Carteira e depois os h2 dos blocos', async () => {
+    addPending('42', pendingRecord('t1'))
+    stubGrid()
+    openWalletAs()
+    await blocks()
+
+    const headings = screen
+      .getAllByRole('heading')
+      .filter((heading) => heading.closest('[hidden]') === null)
+      .map((heading) => `${heading.tagName} ${heading.textContent}`)
+    expect(headings).toEqual(['H1 Carteira', 'H2 Saldo', 'H2 Em andamento', 'H2 Mercado · ETH', 'H2 Atividade'])
   })
 })

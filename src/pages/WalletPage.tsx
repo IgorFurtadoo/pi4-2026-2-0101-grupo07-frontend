@@ -15,6 +15,28 @@ import { useActivity } from '../hooks/useActivity'
 import { useBalance } from '../hooks/useBalance'
 import { readPending, removePending } from '../lib/pendingTransactions'
 
+/**
+ * Posição de cada bloco na grade (desenho, seção 6.2). A ordem no DOM é a do
+ * celular (Saldo, Em andamento, Mercado, Atividade), e é também a de leitura e
+ * de foco nos outros tamanhos: no desktop, a coluna da esquerda (Saldo, Em
+ * andamento) vem antes da da direita (Mercado, Atividade).
+ * - Celular (< 640 px): uma coluna, na ordem do DOM.
+ * - Tablet (>= 640 px): Saldo e Mercado lado a lado; Em andamento e Atividade
+ *   em largura total, cada um numa linha.
+ * - Desktop (>= 1024 px): 12 colunas em 2 linhas. Saldo (5) e Mercado (7) em
+ *   cima; Em andamento (5) e Atividade (7) embaixo. Sem Em andamento, a
+ *   Atividade ocupa as 12 colunas, para não sobrar buraco sob o Saldo.
+ * As classes ficam escritas por extenso para o Tailwind gerá-las.
+ */
+const WALLET_GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4'
+const BLOCK = {
+  balance: 'min-w-0 sm:col-start-1 sm:row-start-1 lg:col-span-5 lg:col-start-1 lg:row-start-1',
+  pending: 'sm:col-span-2 sm:row-start-2 lg:col-span-5 lg:col-start-1 lg:row-start-2',
+  market: 'sm:col-start-2 sm:row-start-1 lg:col-span-7 lg:col-start-6 lg:row-start-1',
+  activityBesidePending: 'sm:col-span-2 lg:col-span-7 lg:col-start-6 lg:row-start-2',
+  activityAlone: 'sm:col-span-2 lg:col-span-12 lg:col-start-1 lg:row-start-2',
+} as const
+
 /** Casca azul do cartão enquanto a primeira leitura não chega. */
 function BalanceCardSkeleton() {
   return (
@@ -81,7 +103,7 @@ export function WalletPage() {
   }
 
   return (
-    <section aria-labelledby="titulo-carteira" className="mx-auto max-w-xl">
+    <section aria-labelledby="titulo-carteira">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 id="titulo-carteira" className="text-3xl">
           Carteira
@@ -104,42 +126,48 @@ export function WalletPage() {
         {userReloaded && status === 'ok' ? 'Saldo atualizado' : ''}
       </p>
 
-      <div aria-busy={loading} className="mt-6">
-        {errorMessage && (
-          <Alert variant="error" className="mb-4">
-            <p>{errorMessage}</p>
-            {!balance && (
-              <Button variant="secondary" onClick={reload} className="mt-3">
-                Tentar novamente
-              </Button>
-            )}
-          </Alert>
-        )}
+      <div className={`mt-4 ${WALLET_GRID}`}>
+        <div aria-busy={loading} data-block="saldo" className={BLOCK.balance}>
+          {errorMessage && (
+            <Alert variant="error" className="mb-4">
+              <p>{errorMessage}</p>
+              {!balance && (
+                <Button variant="secondary" onClick={reload} className="mt-3">
+                  Tentar novamente
+                </Button>
+              )}
+            </Alert>
+          )}
 
-        {balance ? (
-          <>
-            <BalanceCard
-              balance={balance}
-              receiveOpen={receiveOpen}
-              onToggleReceive={() => setReceiveOpen((open) => !open)}
-              receivePanelId={receivePanelId}
-            />
-            <ReceivePanel id={receivePanelId} address={balance.ethereumAddress} open={receiveOpen} />
-          </>
-        ) : (
-          loading && <BalanceCardSkeleton />
-        )}
+          {balance ? (
+            <>
+              <BalanceCard
+                balance={balance}
+                receiveOpen={receiveOpen}
+                onToggleReceive={() => setReceiveOpen((open) => !open)}
+                receivePanelId={receivePanelId}
+              />
+              <ReceivePanel id={receivePanelId} address={balance.ethereumAddress} open={receiveOpen} />
+            </>
+          ) : (
+            loading && <BalanceCardSkeleton />
+          )}
+        </div>
+
+        <PendingList
+          token={token}
+          records={pending}
+          historyHashes={historyHashes}
+          onRemove={removeFromPending}
+          onConfirmed={handleConfirmed}
+          className={BLOCK.pending}
+        />
+        <MarketPanel token={token} className={BLOCK.market} />
+        <ActivityPanel
+          activity={activity}
+          className={pending.length > 0 ? BLOCK.activityBesidePending : BLOCK.activityAlone}
+        />
       </div>
-
-      <MarketPanel token={token} />
-      <PendingList
-        token={token}
-        records={pending}
-        historyHashes={historyHashes}
-        onRemove={removeFromPending}
-        onConfirmed={handleConfirmed}
-      />
-      <ActivityPanel activity={activity} />
     </section>
   )
 }

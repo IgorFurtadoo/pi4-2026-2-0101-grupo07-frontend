@@ -50,8 +50,9 @@ function MarketSkeleton() {
  * dentro do painel. 429 mostra a contagem pelo Retry-After com "Atualizar"
  * desabilitado; 502 mostra "Mercado indisponível" com "Tentar de novo". Com
  * leitura anterior, uma falha mantém o preço com a hora em que foi lido.
+ * `className` posiciona o bloco na grade da carteira.
  */
-export function MarketPanel({ token }: { token: string }) {
+export function MarketPanel({ token, className }: { token: string; className?: string }) {
   const { status, data, fetchedAt, error, retryIn, canRefresh, refresh } = useMarket(token)
   const [userRefreshed, setUserRefreshed] = useState(false)
   const loading = status === 'loading'
@@ -65,7 +66,7 @@ export function MarketPanel({ token }: { token: string }) {
   return (
     <section
       aria-labelledby="titulo-mercado"
-      className="mt-6 rounded-2xl border border-divider bg-surface p-6 sm:p-8"
+      className={`min-w-0 rounded-2xl border border-divider bg-surface p-6 sm:p-8 ${className ?? ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-mercado" className="text-lg">

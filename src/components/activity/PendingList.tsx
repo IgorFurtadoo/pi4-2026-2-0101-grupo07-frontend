@@ -134,6 +134,8 @@ class PendingBoundary extends Component<{ children: ReactNode }, { failed: boole
 type PendingListProps = Omit<ItemProps, 'record'> & {
   /** Envios guardados neste navegador (lib/pendingTransactions.ts), mais novos primeiro. */
   records: PendingRecord[]
+  /** Posição do bloco na grade da carteira. */
+  className?: string
 }
 
 /**
@@ -143,13 +145,13 @@ type PendingListProps = Omit<ItemProps, 'record'> & {
  * fica até "Dispensar" (ou 24 h); CONFIRMED fica até o hash aparecer no
  * histórico (ou 24 h).
  */
-export function PendingList({ records, ...itemProps }: PendingListProps) {
+export function PendingList({ records, className, ...itemProps }: PendingListProps) {
   if (records.length === 0) return null
   return (
     <PendingBoundary>
       <section
         aria-labelledby="titulo-em-andamento"
-        className="mt-6 rounded-2xl border border-divider bg-surface p-6 sm:p-8"
+        className={`min-w-0 rounded-2xl border border-divider bg-surface p-6 sm:p-8 ${className ?? ''}`}
       >
         <h2 id="titulo-em-andamento" className="text-lg">
           Em andamento

@@ -157,7 +157,14 @@ export function ActivityList({ token }: { token: string }) {
  * comparar os hashes com a lista "Em andamento" e reler a atividade quando um
  * envio confirma (desenho, seção 7.2).
  */
-export function ActivityPanel({ activity }: { activity: ActivityHandle }) {
+export function ActivityPanel({
+  activity,
+  className,
+}: {
+  activity: ActivityHandle
+  /** Posição do bloco na grade da carteira. */
+  className?: string
+}) {
   const { status, data, error, refresh } = activity
   const [userRefreshed, setUserRefreshed] = useState(false)
   const loading = status === 'loading'
@@ -170,7 +177,7 @@ export function ActivityPanel({ activity }: { activity: ActivityHandle }) {
   return (
     <section
       aria-labelledby="titulo-atividade"
-      className="mt-6 rounded-2xl border border-divider bg-surface p-6 sm:p-8"
+      className={`min-w-0 rounded-2xl border border-divider bg-surface p-6 sm:p-8 ${className ?? ''}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-atividade" className="text-lg">
