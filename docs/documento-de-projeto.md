@@ -11,9 +11,9 @@ PUC-Campinas · Sistemas de Informação · Projeto Integrador IV · 2026-2 · T
 | Guillermo Perdomo Sevilla Neto | 25009270 | Core API e Banco do Core API |
 | Nicollas Fabbio | 25007563 | Core API e Banco do Core API |
 
-Versão do documento: **1.0**, de 23/11/2026, correspondente às releases `v1.0` dos quatro repositórios.
+Versão do documento: **1.1**, de 26/11/2026. A versão 1.0 (23/11/2026) correspondia às releases `v1.0` dos quatro repositórios. A 1.1 acrescenta o canal de Socket (seção 4.3, CT27 e ADR 0008), a seção "Em andamento" da carteira (envios ainda não minerados) e um novo layout da carteira em blocos, e corresponde às releases `v1.1` do Blockchain Service, do Core API e do Frontend; o External Data Service segue em `v1.0`, porque não mudou.
 
-**Não há repositório principal.** Cada módulo tem o seu repositório, o seu `docker-compose.yml` e a sua release `v1.0` (capítulo 4). Este documento e os fluxos ficam em `docs/` do repositório do Frontend. O capítulo 9 reproduz a parte comum dos quatro READMEs, que explica como subir os módulos juntos.
+**Não há repositório principal.** Cada módulo tem o seu repositório, o seu `docker-compose.yml` e a sua release (`v1.0`; `v1.1` no Blockchain Service, no Core API e no Frontend) (capítulo 4). Este documento e os fluxos ficam em `docs/` do repositório do Frontend. O capítulo 9 reproduz a parte comum dos quatro READMEs, que explica como subir os módulos juntos.
 
 **Como ler os identificadores.** Os capítulos conversam pelos mesmos identificadores das entregas anteriores, sem renumeração:
 
@@ -21,7 +21,7 @@ Versão do documento: **1.0**, de 23/11/2026, correspondente às releases `v1.0`
 |---|---|---|
 | E | Entregável da Entrega 1, aqui tratado como requisito funcional | Entrega 1 (E1 a E9); E10 é novo (capítulo 3) |
 | RNF | Requisito não funcional | Capítulo 3 (novo) |
-| CT | Contrato de uma fronteira | Entrega 2 (CT1 a CT23); CT24 a CT26 foram criados durante a implementação |
+| CT | Contrato de uma fronteira | Entrega 2 (CT1 a CT23); CT24 a CT26 foram criados durante a implementação; CT27 na versão 1.1 |
 | TE | Caso de teste | Capítulo 7 (novo) |
 | ADR | Registro de decisão de arquitetura | Tarefa 2 e implementação |
 | P | Premissa da Especificação (Entrega 2) | Entrega 2 |
@@ -71,6 +71,7 @@ O que o sistema entregue faz, do ponto de vista de quem usa (detalhe no capítul
 | Outras redes além da Sepolia; valores reais; exchanges | Entrega 1 |
 | Recuperação de senha, logout no servidor e limite de tentativas de login | Decidido na implementação (ADR 0004) |
 | Tempo limite de task e retentativa do webhook (P4 continua em aberto) | Decidido na implementação |
+| Confirmação de recebimento, retentativa e reenvio dos avisos do canal de Socket | Decidido na implementação (ADR 0008) |
 | Proteção contra envio duplicado no servidor (idempotência do CT9 e CT10) | Limitação conhecida (capítulo 7) |
 | Mais de uma instância de cada serviço; HTTPS dentro do compose | Decidido na implementação |
 | Tema escuro completo e QR code na tela "Receber" | Decidido na implementação |
@@ -166,8 +167,8 @@ Os fluxos estão em [`docs/fluxos/`](https://github.com/IgorFurtadoo/pi4-2026-2-
 | Feito quando | O usuário acompanha, na mesma tela, o estado da transação evoluindo de "pendente" para "confirmada" (ou "falhou"), atualizado automaticamente por polling, sem recarregar a página. |
 | Situação | **Pronto** |
 | Fluxo | `E5-acompanhamento-assincrono-da-transacao.md` |
-| Contratos | CT11, CT12, CT13 `getTransaction`, CT14 `getTask`, CT15 `notifyTaskCompleted`, CT16 `rpcGetTransactionReceipt`, CT24 `rpcGetTransactionByHash` |
-| Observação | Polling a cada 3 s, com recuo em falha e pausa com a aba escondida. O estado chega ao Core API pelo webhook ou pela consulta ativa, o que vier primeiro (ADR 0002). |
+| Contratos | CT11, CT12, CT13 `getTransaction`, CT14 `getTask`, CT15 `notifyTaskCompleted`, CT16 `rpcGetTransactionReceipt`, CT24 `rpcGetTransactionByHash`, CT27 `subscribeTaskNotices` |
+| Observação | Polling a cada 3 s, com recuo em falha e pausa com a aba escondida. O estado chega ao Core API pelo webhook, pelo aviso de Socket (CT27, ADR 0008) ou pela consulta ativa, o que vier primeiro (ADR 0002). |
 
 #### E6 · Painel de informações de mercado
 
@@ -222,7 +223,7 @@ Os fluxos estão em [`docs/fluxos/`](https://github.com/IgorFurtadoo/pi4-2026-2-
 | Situação | **Pronto** |
 | Fluxo | Sem arquivo de fluxo; descrito no desenho do Frontend, seção 7 |
 | Contratos | CT26 `getWalletTransactions`, CT24 `fetchAddressTransactions` (External Data Service), CT25 `blockscoutGetAddressTransactions` |
-| Observação | Criado em 18/11/2026 porque, sem lista, o usuário que fecha a aba durante um envio perde o acesso à transação. Os dados vêm do Blockscout público, sem chave (ADR 0007). |
+| Observação | Criado em 18/11/2026 porque, sem lista, o usuário que fecha a aba durante um envio perde o acesso à transação. Os dados vêm do Blockscout público, sem chave (ADR 0007). Na versão 1.1, os envios ainda não minerados aparecem numa seção "Em andamento" acima da lista, guardados no navegador (até 20 itens e 24 h) e consultados pelo CT13. |
 
 ### 3.2 Requisitos não funcionais
 
@@ -239,7 +240,7 @@ Cada RNF diz como conferir. O teste correspondente está no capítulo 7.
 | RNF-07 | Senhas são guardadas só como hash bcrypt de custo 12; nunca em claro, em log ou em resposta. | Ler a coluna `password_hash`; testes do `PasswordHasher`. | TE-02, TE-04 |
 | RNF-08 | A chave privada de cada carteira é guardada cifrada com AES-256-GCM e nunca sai do Blockchain Service, nem em resposta, log ou mensagem de erro. | Ler a coluna `encrypted_private_key` (Base64 de 80 caracteres); testes do `KeyCipher`; respostas do CT1 e CT4 têm só o endereço. | TE-06, TE-25 |
 | RNF-09 | Nenhum segredo fica no repositório. Todos vêm do `.env`, que está no `.gitignore`, e cada serviço se recusa a subir com segredo ausente ou com o valor de exemplo. | Subir com o `.env.example` sem alterar; o serviço sai com mensagem clara. | TE-26 |
-| RNF-10 | Os bancos não têm porta publicada. Os quatro serviços publicam porta só em `127.0.0.1` (5173, 8080, 8081 e 8082), nunca em todas as interfaces do computador. | `docker ps`. | TE-27 |
+| RNF-10 | Os bancos não têm porta publicada. Os quatro serviços publicam porta só em `127.0.0.1` (5173, 8080, 8081 e 8082), nunca em todas as interfaces do computador. A porta 9091 do canal de Socket não é publicada: só existe dentro da rede `lemma-dev`. | `docker ps`. | TE-27 |
 | RNF-11 | O sistema só opera na Sepolia: o Blockchain Service se recusa a subir com `CHAIN_ID` diferente de 11155111. | Subir com outro `CHAIN_ID`. | TE-26 |
 | RNF-12 | Dados pessoais guardados: só e-mail, hash da senha, endereço público da carteira e transações do usuário, usados para login, para associar a carteira e para mostrar o histórico. Nenhum outro dado pessoal é coletado. | Ler o `schema.sql` dos dois bancos (capítulo 5). | Inspeção |
 
@@ -251,12 +252,12 @@ Cada RNF diz como conferir. O teste correspondente está no capítulo 7.
 | E2 | E2 | CT1, CT2, CT4, CT5 | TE-01, TE-06, TE-07 |
 | E3 | E3 | CT2, CT6, CT7, CT8 | TE-08, TE-09 |
 | E4 | E4 | CT2, CT9, CT10, CT11, CT12 | TE-10, TE-11, TE-12 |
-| E5 | E5 | CT11 a CT16, CT24 | TE-13, TE-14, TE-15, TE-16 |
+| E5 | E5 | CT11 a CT16, CT24, CT27 | TE-13, TE-14, TE-15, TE-16, TE-29 |
 | E6 | E6 | CT17 a CT20 | TE-17, TE-18 |
 | E7 | E7 | CT17 a CT20 | TE-19, TE-20 |
 | E8 | E8 | CT2, CT5, CT9 a CT12, CT21 a CT23 | TE-21 |
 | E9 | E9 | CT11, CT13 a CT16, CT23, CT24 | TE-22 |
-| E10 | Desenho do Frontend, seção 7 | CT24 (External Data Service), CT25, CT26 | TE-23 |
+| E10 | Desenho do Frontend, seção 7 | CT24 (External Data Service), CT25, CT26 | TE-23, TE-30 |
 
 Todo E aparece em pelo menos um fluxo, um contrato e um teste.
 
@@ -268,13 +269,13 @@ Todo E aparece em pelo menos um fluxo, um contrato e um teste.
 
 ### 4.1 Visão da arquitetura
 
-O Lemma tem quatro serviços próprios e dois bancos, cada um em seu contêiner. O navegador fala só com o **Frontend** (que entrega a SPA) e com o **Core API** (ponto único de contato). O Core API cuida de usuários, autenticação, orquestração e estado das transações, e delega: tudo o que toca a Ethereum vai ao **Blockchain Service** (ADR 0001), e tudo o que vem de APIs públicas de mercado e histórico vai ao **External Data Service** (ADR 0006). Operações demoradas na rede viram tasks assíncronas (ADR 0002): o Blockchain Service responde `202`, processa em segundo plano e avisa o Core API por webhook, que também consulta ativamente. Cada serviço com estado tem o seu banco; não há banco compartilhado.
+O Lemma tem quatro serviços próprios e dois bancos, cada um em seu contêiner. O navegador fala só com o **Frontend** (que entrega a SPA) e com o **Core API** (ponto único de contato). O Core API cuida de usuários, autenticação, orquestração e estado das transações, e delega: tudo o que toca a Ethereum vai ao **Blockchain Service** (ADR 0001), e tudo o que vem de APIs públicas de mercado e histórico vai ao **External Data Service** (ADR 0006). Operações demoradas na rede viram tasks assíncronas (ADR 0002): o Blockchain Service responde `202`, processa em segundo plano e avisa o Core API por webhook e por um canal de Socket (ADR 0008), e o Core API também consulta ativamente. Cada serviço com estado tem o seu banco; não há banco compartilhado.
 
-**Organização em repositórios.** Cada módulo roda no próprio contêiner, como orienta a disciplina, e a equipe decidiu manter um repositório por módulo (decisão registrada na Entrega 2). Cada repositório tem o seu `docker-compose.yml`, que sobe o módulo e, quando há, o seu banco, e a sua release `v1.0`. Não há repositório principal nem compose do sistema inteiro: os quatro composes sobem na mesma máquina, e os backends se encontram pela rede Docker externa `lemma-dev`, criada uma vez com `docker network create lemma-dev`. O Frontend não entra nessa rede, porque quem chama o Core API é o navegador, pela porta publicada no computador.
+**Organização em repositórios.** Cada módulo roda no próprio contêiner, como orienta a disciplina, e a equipe decidiu manter um repositório por módulo (decisão registrada na Entrega 2). Cada repositório tem o seu `docker-compose.yml`, que sobe o módulo e, quando há, o seu banco, e a sua release (`v1.0`, ou `v1.1` no Blockchain Service, no Core API e no Frontend). Não há repositório principal nem compose do sistema inteiro: os quatro composes sobem na mesma máquina, e os backends se encontram pela rede Docker externa `lemma-dev`, criada uma vez com `docker network create lemma-dev`. O Frontend não entra nessa rede, porque quem chama o Core API é o navegador, pela porta publicada no computador.
 
 ![Diagrama de contêineres do Lemma](img/arquitetura.svg)
 
-*Figura 1. Diagrama de contêineres. Cada moldura tracejada é o `docker-compose.yml` de um repositório, e as seis caixas são os serviços desses composes, com os mesmos nomes. Cada seta diz o meio e os contratos que passam por ela.*
+*Figura 1. Diagrama de contêineres. Cada moldura tracejada é o `docker-compose.yml` de um repositório, e as seis caixas são os serviços desses composes, com os mesmos nomes. Cada seta diz o meio e os contratos que passam por ela. O canal de Socket da versão 1.1 (CT27, porta interna 9091, entre o Blockchain Service e o Core API) acompanha a seta do webhook e é descrito em 4.3.*
 
 ### 4.2 Implantação com Docker
 
@@ -283,7 +284,7 @@ O Lemma tem quatro serviços próprios e dois bancos, cada um em seu contêiner.
 | `frontend` | `-frontend` | construída do repositório: `node:26.13.1-trixie-slim` (build) e `nginxinc/nginx-unprivileged:1.30.6-alpine3.24` | 8080 no contêiner | publicada em `127.0.0.1:5173` | padrão | `core-api` no ar (o navegador o chama em `localhost:8080`) |
 | `core-api` | `-core-api` | construída do repositório: `maven:3.9.16-eclipse-temurin-21` (build) e `eclipse-temurin:21.0.13_9-jre-noble` | 8080 | publicada em `127.0.0.1:8080` (o navegador chama) | padrão e `lemma-dev` | `core-db` saudável; `blockchain-service` e `external-data-service` na `lemma-dev` |
 | `core-db` | `-core-api` | `mysql:8.4.13` | 3306 | interna | padrão | nenhum |
-| `blockchain-service` | `-blockchain` | construída do repositório (mesmas imagens Java) | 8081 | publicada em `127.0.0.1:8081` (testes por `curl`) | padrão e `lemma-dev` | `blockchain-db` saudável; `core-api` na `lemma-dev` para o webhook |
+| `blockchain-service` | `-blockchain` | construída do repositório (mesmas imagens Java) | 8081 e 9091 | 8081 publicada em `127.0.0.1:8081` (testes por `curl`); 9091 (Socket) interna | padrão e `lemma-dev` | `blockchain-db` saudável; `core-api` na `lemma-dev` para o webhook (o `core-api` conecta na 9091 por Socket) |
 | `blockchain-db` | `-blockchain` | `mysql:8.4.13` | 3306 | interna | padrão | nenhum |
 | `external-data-service` | `-external-data-service` | construída do repositório (mesmas imagens Java) | 8082 | publicada em `127.0.0.1:8082` (testes por `curl`) | só `lemma-dev` | nenhum |
 
@@ -295,17 +296,19 @@ Notas de implantação:
 - O `schema.sql` de cada módulo é executado pelo MySQL na criação do volume.
 - Os bancos têm `healthcheck` (`mysqladmin ping`), e cada serviço Java só sobe depois do seu banco saudável. O Hibernate só valida o esquema; não cria tabelas.
 - O `blockchain-service` tem `stop_grace_period: 40s`, porque o processo espera até 30 s o ciclo do worker terminar antes de fechar o banco.
+- A porta 9091 do `blockchain-service` (Socket, ADR 0008) não é publicada no computador. Só os serviços da `lemma-dev` a alcançam, e quem se conecta precisa enviar a `SERVICE_KEY`. Variáveis: `TASK_SOCKET_PORT` (padrão 9091; 0 desliga o canal) no Blockchain Service; `TASK_SOCKET_HOST` (padrão `blockchain-service`) e `TASK_SOCKET_PORT` no Core API.
 - Volumes nomeados: `core-db-data` e `blockchain-db-data`. Apagar o volume do Blockchain Service apaga as chaves das carteiras.
 - Imagens Java rodam como usuário não root; o nginx também (`nginx-unprivileged`).
 
 ### 4.3 Comunicação entre os backends
 
-Os backends conversam por **HTTP/1.1 sobre TCP, com corpo JSON**, na rede Docker `lemma-dev`, chamando uns aos outros pelo nome do serviço. O sistema não usa WebSocket nem socket TCP próprio: a única comunicação que parte do servidor é o webhook CT15, também em HTTP. A troca de mensagens sem conexão permanente foi decidida no ADR 0002 (tasks com `202`, webhook e consulta ativa), e o formato de cada mensagem está nas fichas CT.
+Os backends conversam por **HTTP/1.1 sobre TCP, com corpo JSON**, na rede Docker `lemma-dev`, chamando uns aos outros pelo nome do serviço. O sistema não usa WebSocket. Além do HTTP, há um canal de **Socket Java** (TCP, com objetos Java serializados) pelo qual o Blockchain Service avisa o Core API da task concluída, descrito logo abaixo da tabela (ADR 0008). O restante da troca de mensagens, sem conexão permanente, foi decidido no ADR 0002 (tasks com `202`, webhook e consulta ativa), e o formato de cada mensagem está nas fichas CT.
 
 | Ligação | Servidor (porta) | Cliente | Mensagens | Autenticação | Tempo limite | Quando a conexão cai |
 |---|---|---|---|---|---|---|
 | Operações de carteira | `blockchain-service` (8081) | `core-api` | CT4, CT7, CT10, CT14 | `X-Service-Key` | 15 s | O Core API responde `502` (`WALLET_UNAVAILABLE` no cadastro, `BLOCKCHAIN_UNAVAILABLE` no saldo e no envio). No cadastro, o usuário não é gravado. No acompanhamento (CT13), o Core API devolve o último estado local, sem erro. Não há retentativa automática do envio, para não duplicar transações. |
 | Aviso de task concluída (webhook) | `core-api` (8080) | `blockchain-service` | CT15 | `X-Service-Key` | 5 s | O aviso é registrado no log e não é repetido (P4). O estado final já está gravado no Blockchain Service e chega ao Core API pela consulta ativa (CT14) no próximo polling do Frontend. |
+| Aviso de task concluída (Socket) | `blockchain-service` (9091) | `core-api` | CT27 (`SubscribeRequest`, `TaskCompletedNotice`, `ShutdownNotice`) | `serviceKey` na primeira mensagem | 5 s para assinar | O Core API tenta reconectar a cada 5 s. Avisos perdidos não são reenviados (não há confirmação): o estado final chega pelo webhook ou pela consulta ativa (CT14). |
 | Mercado e histórico | `external-data-service` (8082) | `core-api` | CT18, CT24 (histórico) | `X-Service-Key` | 15 s | O Core API responde `502 MARKET_DATA_UNAVAILABLE` ou `502 HISTORY_UNAVAILABLE`; o resto da carteira segue funcionando. |
 | Rede Ethereum | Provedor RPC (HTTPS, externo) | `blockchain-service` | CT8, CT16, CT21 a CT24 | nenhuma | 10 s | Saldo: `502 RPC_UNAVAILABLE`. Antes de assinar: task `FAILED/INTERNAL_ERROR` (nada foi enviado). Depois de assinar: a task fica `PENDING` e o worker tenta de novo no ciclo seguinte (5 s), reenviando a mesma transação assinada. |
 | Dados de mercado | CoinGecko (HTTPS, externo) | `external-data-service` | CT19, CT20 | `x-cg-demo-api-key` | 6 s por chamada | `502 MARKET_DATA_UNAVAILABLE`, sem resposta parcial e sem retentativa. |
@@ -313,6 +316,27 @@ Os backends conversam por **HTTP/1.1 sobre TCP, com corpo JSON**, na rede Docker
 | Navegador | `core-api` (8080, no host) | Frontend no navegador | CT1, CT3, CT6, CT9, CT13, CT17, CT26 | JWT `Bearer` | 20 s no cliente | Envio com resultado incerto: a tela avisa e não reenvia sozinha. Polling: mantém o último estado, mostra "Reconectando…" e aumenta o intervalo (3, 6 e 10 s). |
 
 Todos os erros HTTP têm o mesmo formato: status mais corpo JSON com `code` e `message`. A `X-Service-Key` é comparada em tempo constante e exigida em todas as rotas internas.
+
+**Canal de Socket (ADR 0008).** Acrescentado na versão 1.1 para usar Socket Java na comunicação entre módulos, seguindo o exemplo fornecido na disciplina: servidor com `ServerSocket`, uma thread por conexão e mensagens `Serializable` em `ObjectInputStream` e `ObjectOutputStream`. O webhook CT15 e a consulta ativa continuam como estavam; o Socket é um terceiro caminho para o mesmo aviso.
+
+- **Servidor:** o Blockchain Service abre um `ServerSocket` na porta interna 9091. Uma thread aceita conexões e cada conexão tem a sua thread. Quem se conecta envia um `SubscribeRequest` com a `SERVICE_KEY` em até 5 s; chave errada, mensagem de outro tipo ou silêncio fecham a conexão.
+- **Cliente:** o Core API mantém uma thread que se conecta, assina e fica ouvindo. Ao receber um `TaskCompletedNotice`, aplica o estado pela mesma regra do webhook CT15. Se a conexão cai ou chega um `ShutdownNotice`, espera 5 s e reconecta.
+- **Envio:** o Blockchain Service avisa pelo Socket quando a task chega a `CONFIRMED` ou `FAILED`. Falha no Socket nunca altera o estado da task nem impede o webhook.
+- **Segurança:** a desserialização de objetos Java é um risco conhecido; por isso os dois lados usam um `ObjectInputFilter` que só aceita as classes do pacote `com.lemma.socket` e `String`, com limite de tamanho. A porta não é publicada no computador.
+- **Limitações:** não há confirmação de recebimento nem retentativa. Quem estiver desconectado perde o aviso e recupera o estado pela consulta ativa (CT14).
+
+As classes seguem a estrutura do exemplo da disciplina, com nomes em inglês:
+
+| Exemplo da disciplina | Lemma | Onde |
+|---|---|---|
+| `Servidor` (montagem) | `Main` | Blockchain Service |
+| `AceitadoraDeConexao` | `ConnectionAcceptor` | Blockchain Service |
+| `SupervisoraDeConexao` | `ConnectionSupervisor` | Blockchain Service |
+| lista de usuários e envio a todos | `subscribers` e `TaskNoticeBroadcaster` | Blockchain Service |
+| `Parceiro` | `Partner` | Blockchain Service e Core API |
+| `Comunicado` | `Message`, com `SubscribeRequest` e `TaskCompletedNotice` | Blockchain Service e Core API |
+| `ComunicadoDeDesligamento` | `ShutdownNotice` | Blockchain Service e Core API |
+| `Cliente` e `TratadoraDeComunicadoDeDesligamento` | `TaskNoticeListener` | Core API |
 
 ### 4.4 Tecnologias
 
@@ -332,6 +356,7 @@ Todos os erros HTTP têm o mesmo formato: status mais corpo JSON com `code` e `m
 | Build e testes do Frontend | Vite 8.3, Vitest 5.1 | Build rápido; testes com relógio falso para o polling. |
 | Servidor do Frontend | nginx 1.30.6 (imagem sem root) | Serve o build estático com fallback de SPA e cabeçalhos de segurança (CSP). |
 | Contêineres | Docker e Docker Compose, um compose por repositório, rede externa `lemma-dev` | Requisito da disciplina; cada módulo sobe com um comando e é testado isolado. |
+| Socket entre serviços | `java.net.Socket`, `ServerSocket` e serialização de objetos Java, só com o JDK | Requisito da disciplina; segue o exemplo fornecido (ADR 0008). |
 | Rede | Ethereum Sepolia via PublicNode (JSON-RPC público) | Gratuito, sem conta; testado em 07/11/2026. |
 | Mercado | CoinGecko, plano Demo | Gratuito, com preço e série histórica. |
 | Histórico | Blockscout público da Sepolia | Gratuito e sem chave; 180 requisições por minuto. |
@@ -396,6 +421,7 @@ Cada ficha fica no repositório do módulo que **responde** à chamada (o Blockc
 | CT24 ⚠ | `fetchAddressTransactions` (novo) | Core API → External Data Service (HTTP) | [External Data](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-external-data-service/blob/main/docs/contratos/CT24-fetchAddressTransactions.md) |
 | CT25 | `blockscoutGetAddressTransactions` (novo) | External Data Service → Blockscout | [External Data](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-external-data-service/blob/main/docs/contratos/CT25-blockscoutGetAddressTransactions.md) |
 | CT26 | `getWalletTransactions` (novo) | Frontend → Core API (HTTP) | [Core API](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-core-api/blob/main/docs/contratos/CT26-getWalletTransactions.md) |
+| CT27 | `subscribeTaskNotices` (novo, v1.1) | Core API → Blockchain Service (Socket TCP, objetos Java) | [Blockchain](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-blockchain/blob/main/docs/contratos/CT27-subscribeTaskNotices.md) |
 
 ⚠ **Número repetido.** O CT24 foi criado duas vezes, em módulos diferentes e com sentidos diferentes. Neste documento, "CT24" sem complemento é o `rpcGetTransactionByHash`; o `fetchAddressTransactions` é citado sempre pelo nome. A correção registrada como defeito D-01 (capítulo 7) é dar a ele o próximo número livre, sem renumerar os demais.
 
@@ -412,8 +438,9 @@ Fluxos: [`docs/fluxos/`](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07
 | 0005 | Assinar as transações com limite de gás fixo de 500.000 (novo) | Aceito | [Blockchain](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-blockchain/blob/main/docs/adr/0005-assinar-transacoes-com-limite-de-gas-fixo-de-500000.md) |
 | 0006 | Separar a integração com APIs externas em um serviço próprio (novo) | Aceito | [External Data](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-external-data-service/blob/main/docs/adr/0006-separar-a-integracao-com-apis-externas-em-um-servico-proprio.md) |
 | 0007 | Ler o histórico da carteira do Blockscout público (novo) | Aceito | [External Data](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-external-data-service/blob/main/docs/adr/0007-ler-o-historico-da-carteira-do-blockscout-publico.md) |
+| 0008 | Avisar a task concluída também por Socket Java (novo, v1.1) | Aceito | [Blockchain](https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-blockchain/blob/main/docs/adr/0008-avisar-task-concluida-tambem-por-socket.md) |
 
-Os ADRs 0005 a 0007 registram decisões tomadas durante o desenvolvimento que ainda não tinham ADR. Outras divergências entre a Especificação e o sistema que roda (hash gravado antes do envio, retomada pelo primeiro ciclo do worker, `X-Service-Key` também no External Data Service) estão registradas no desenho de cada módulo (`docs/desenho-*.md`).
+Os ADRs 0005 a 0007 registram decisões tomadas durante o desenvolvimento que ainda não tinham ADR. O ADR 0008 (versão 1.1) acrescenta o canal de Socket sem substituir o webhook. Outras divergências entre a Especificação e o sistema que roda (hash gravado antes do envio, retomada pelo primeiro ciclo do worker, `X-Service-Key` também no External Data Service) estão registradas no desenho de cada módulo (`docs/desenho-*.md`).
 
 ---
 
@@ -427,12 +454,12 @@ Cada backend tem testes JUnit sem rede: regras de negócio com dependências fal
 
 ### 7.2 Testes automatizados
 
-| Módulo | Testes no código-fonte (23/11/2026) | Última execução registrada | Comando |
+| Módulo | Testes no código-fonte (26/11/2026) | Última execução registrada | Comando |
 |---|---|---|---|
-| Core API | 436 métodos `@Test`/`@ParameterizedTest` em 26 classes | 23/11/2026: 436 testes, 0 falhas, 1 erro (tempo esgotado em `HttpBlockchainClientTest.successIsNotLogged`, com os três backends compilando ao mesmo tempo; defeito D-06) | `mvn clean test` |
-| Blockchain Service | 142 métodos em 13 classes | 23/11/2026: 152 testes executados, 0 falhas | `mvn clean test` |
+| Core API | 449 métodos `@Test`/`@ParameterizedTest` em 28 classes | 26/11/2026: 449 testes, 0 falhas (o erro do D-06, visto em 23/11 com os três backends compilando juntos, não se repetiu) | `mvn clean test` |
+| Blockchain Service | 159 métodos em 14 classes | 26/11/2026: 169 testes executados, 0 falhas | `mvn clean test` |
 | External Data Service | 87 métodos em 10 classes | 23/11/2026: 87 testes, 0 falhas | `mvn clean test` |
-| Frontend | 375 casos `it`/`test` em 33 arquivos (casos com `.each` se multiplicam na execução) | 19/11/2026: 623 testes executados, 0 falhas | `npm test` |
+| Frontend | 453 casos `it`/`test` em 37 arquivos (casos com `.each` se multiplicam na execução) | 26/11/2026: 684 testes executados, 0 falhas | `npm test` |
 
 | Item | Situação |
 |---|---|
@@ -441,7 +468,7 @@ Cada backend tem testes JUnit sem rede: regras de negócio com dependências fal
 
 ### 7.3 Casos de teste
 
-Situação: **Passou** (execução registrada, com a data), **Passou (auto)** (coberto por teste automatizado na última execução registrada), **Não executado**. Os testes marcados com † precisam ser repetidos com as releases `v1.0`.
+Situação: **Passou** (execução registrada, com a data), **Passou (auto)** (coberto por teste automatizado na última execução registrada), **Não executado**. Os testes marcados com † precisam ser repetidos com as releases `v1.0` e `v1.1`.
 
 | TE | Verifica | Passos | Esperado | Obtido | Situação |
 |---|---|---|---|---|---|
@@ -473,6 +500,8 @@ Situação: **Passou** (execução registrada, com a data), **Passou (auto)** (c
 | TE-26 | RNF-09, RNF-11 | Subir com segredos de exemplo; subir com `CHAIN_ID` diferente | Serviço sai com código 1 e mensagem clara | Testes `AppConfigTest` dos três backends | Passou (auto) |
 | TE-27 | RNF-10 | `docker ps` com o sistema no ar | Bancos sem porta; 5173, 8080, 8081 e 8082 só em `127.0.0.1` | — | Não executado † |
 | TE-28 | RNF-02 | Abrir a carteira com o Core API parado | Cada painel mostra erro com botão de tentar de novo, sem tela branca | "Não foi possível falar com o servidor" nos três painéis (8.13) | Passou (23/11) |
+| TE-29 | E5, CT27, ADR 0008 | Com o Blockchain Service e o Core API da v1.1 no ar, enviar uma transação pela tela e ler os logs dos dois módulos | O Blockchain Service registra o aviso enviado por Socket e o Core API registra o aviso aplicado; a tela chega a "Confirmada" | Task `f9369f8e…`, bloco 12218434: aviso enviado por Socket às 19:11:28,952Z; aplicado pelo Core API às 19:11:29,006Z; webhook CT15 entregue depois, às 19:11:29,027Z (HTTP 204) | Passou (26/11) |
+| TE-30 | E4, E5, E10 | Enviar uma transação, sair do acompanhamento e voltar à carteira | A transação aparece em "Em andamento", com link para o acompanhamento, até confirmar e entrar no histórico | Conferido no navegador em 26/11/2026: o envio aparece em "Em andamento" ao voltar à carteira | Passou (26/11) |
 
 As transações citadas podem ser conferidas em `https://sepolia.etherscan.io/tx/<hash>`.
 
@@ -480,9 +509,9 @@ As transações citadas podem ser conferidas em `https://sepolia.etherscan.io/tx
 
 | Casos | Passou | Passou (auto) | Falhou | Não executado |
 |---|---|---|---|---|
-| 28 | 18 | 7 | 0 | 3 |
+| 30 | 20 | 7 | 0 | 3 |
 
-Última rodada manual registrada: 23/11/2026. Os casos † devem ser repetidos sobre as releases `v1.0` antes da apresentação.
+Última rodada manual registrada: 26/11/2026 (TE-29); os demais casos manuais são de 23/11/2026 ou anteriores. Os casos † devem ser repetidos sobre as releases `v1.0` e `v1.1` antes da apresentação.
 
 ### 7.5 Defeitos conhecidos
 
@@ -494,7 +523,7 @@ Nenhum defeito foi registrado como card no quadro do OpenProject. Os itens abaix
 | D-02 | Uma task pode ficar `PENDING` para sempre se o nó responder "nonce too low" e não conhecer o hash; não há tempo limite de task. O Frontend mostra o aviso de demora após 10 minutos. | Média | Desenho do Blockchain Service (Fase A do worker) |
 | D-03 | Se o envio estourar o tempo entre Core API e Blockchain Service, não há como saber se foi aceito; repetir pode gerar duas transações (sem idempotência no CT9/CT10). A tela avisa e não reenvia sozinha. | Média | Desenho do Core API e do Frontend |
 | D-04 | Não há limite de tentativas de login. | Média | ADR 0004 |
-| D-05 | Um envio aceito com a aba fechada antes da resposta só pode ser reencontrado depois de minerado (pelo histórico, E10). | Baixa | Desenho do Frontend |
+| D-05 | A lista "Em andamento" (versão 1.1) fica só no navegador onde o envio foi feito: ao trocar de navegador ou limpar os dados dele, um envio ainda não minerado só pode ser reencontrado depois de minerado, pelo histórico (E10). | Baixa | Desenho do Frontend |
 | D-06 | O teste `HttpBlockchainClientTest.successIsNotLogged` usa tempo limite de 1 s contra um servidor HTTP local e falha com a máquina sobrecarregada (1,1 s medido). Rodando sozinho, não ocorre. A correção é aumentar o limite nesse teste. | Baixa | `mvn clean test` de 23/11/2026 (7.2) |
 
 Escala usada: **Crítica** (impede o uso), **Alta** (um entregável de prioridade Alta não funciona como no "feito quando"), **Média** (erro com forma de contornar), **Baixa** (problema visual, de texto ou de documentação).
@@ -505,7 +534,7 @@ Escala usada: **Crítica** (impede o uso), **Alta** (um entregável de prioridad
 
 > Responsável: Igor de Toledo Furtado
 
-Prints da versão entregue (`v1.0`), no Chrome, na Sepolia, tirados em 23/11/2026 com os quatro módulos no ar, exceto em 8.13, onde módulos foram parados de propósito.
+Prints da versão entregue (`v1.0`), no Chrome, na Sepolia, tirados em 23/11/2026 com os quatro módulos no ar, exceto em 8.13, onde módulos foram parados de propósito. Os prints são da versão 1.0. A versão 1.1 trocou o layout da carteira por blocos em grade (8.5, 8.7 e 8.12 mostram o layout anterior) e acrescentou a seção "Em andamento"; as demais telas não mudaram.
 
 ### 8.1 Login
 
@@ -630,6 +659,7 @@ No PDF, a parte comum dos quatro READMEs (nome, integrantes, repositórios e "Co
 - **Rede de testes que muda.** A Sepolia mudou de regras durante o semestre (Glamsterdam, 06/10/2026), e o custo de gás previsto deixou de valer.
 - **Torneiras de ETH de teste.** Várias exigem saldo na mainnet. Só a torneira por mineração (pk910) funcionou.
 - **Concorrência.** Garantir que webhook e consulta ativa não regridam nem misturem o estado exigiu uma atualização condicional no banco e um roteiro de concorrência só para isso.
+- **Socket tardio.** A disciplina pedia o uso de Socket Java e o canal só entrou na versão 1.1, como terceiro caminho do aviso de task concluída (ADR 0008). Foi acrescentado sem trocar o webhook, para não arriscar o que já estava provado com transações reais; por isso o ganho funcional é pequeno (o aviso chega pelo caminho que vier primeiro), e a justificativa principal é o uso da tecnologia pedida.
 - **Quatro repositórios.** Um repositório por módulo isolou bem cada parte e permitiu testar cada uma sozinha, mas a execução do sistema inteiro depende de clonar quatro repositórios, criar uma rede Docker compartilhada e manter a mesma `SERVICE_KEY` em três arquivos `.env`. Um repositório único com um compose do sistema subiria tudo com um comando.
 
 **O que fica para uma próxima versão.**
@@ -657,6 +687,9 @@ No PDF, a parte comum dos quatro READMEs (nome, integrantes, repositórios e "Co
 | Release `v1.0` do Core API | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-core-api/releases/tag/v1.0> |
 | Release `v1.0` do Blockchain Service | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-blockchain/releases/tag/v1.0> |
 | Release `v1.0` do External Data Service | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-external-data-service/releases/tag/v1.0> |
+| Release `v1.1` do Frontend | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-frontend/releases/tag/v1.1> |
+| Release `v1.1` do Core API | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-core-api/releases/tag/v1.1> |
+| Release `v1.1` do Blockchain Service | <https://github.com/IgorFurtadoo/pi4-2026-2-0101-grupo07-blockchain/releases/tag/v1.1> |
 | Última execução do CI | Não configurado nesta versão |
 | Painel do SonarQube | Não configurado nesta versão |
 
